@@ -6,7 +6,7 @@ export function AppFooter() {
           Built by Your Name/Company. The source code is available on GitHub (placeholder).
         </p>
         <p className="text-sm text-muted-foreground">
-          &copy; {new Date().getFullYear()} Corots. All rights reserved. Play responsibly.
+          &copy; {new Date().getFullYear()} Crotos. All rights reserved. Play responsibly.
         </p>
       </div>
     </footer>

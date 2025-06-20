@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { AppProviders } from '@/components/layout/AppProviders';
 
 export const metadata: Metadata = {
-  title: 'Corots - Color Prediction Game',
+  title: 'Crotos - Color Prediction Game',
   description: 'Futuristic color prediction betting game.',
 };
 
