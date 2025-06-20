@@ -13,11 +13,12 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { AlertCircle, Info } from 'lucide-react';
+import { AlertCircle, Info, Gift } from 'lucide-react';
 
 // Dummy data and simulation logic
 let currentRoundId = Date.now();
-let userBalance = 1000; // Simulating user balance
+const SIGNUP_BONUS = 50;
+let userBalance = 1000 + SIGNUP_BONUS; // Simulating user balance with signup bonus
 const initialBets: BetType[] = [];
 
 // Placeholder sound data URIs (silent WAV)
@@ -37,6 +38,7 @@ export default function HomePage() {
     status: 'betting'
   });
   const { toast } = useToast();
+  const [bonusNotified, setBonusNotified] = useState(false);
 
   const betPlacedSoundRef = useRef<HTMLAudioElement | null>(null);
   const winSoundRef = useRef<HTMLAudioElement | null>(null);
@@ -54,7 +56,21 @@ export default function HomePage() {
         winSoundRef.current.preload = "auto";
         loseSoundRef.current.preload = "auto";
     }
-  }, []);
+
+    // Notify about signup bonus once
+    if (!bonusNotified) {
+      toast({
+        title: (
+          <div className="flex items-center">
+            <Gift className="mr-2 h-5 w-5 text-primary" /> Welcome Bonus!
+          </div>
+        ),
+        description: `You've received a signup bonus of ₹${SIGNUP_BONUS}! Happy playing!`,
+        duration: 7000,
+      });
+      setBonusNotified(true);
+    }
+  }, [bonusNotified, toast]);
 
   const playLocalSound = (soundRef: React.RefObject<HTMLAudioElement>) => {
     soundRef.current?.play().catch(error => console.warn("Audio play failed:", error));
@@ -260,7 +276,6 @@ export default function HomePage() {
                                         <li>Red / Green: Win x{PAYOUT_MULTIPLIERS.RED} of bet amount.</li>
                                         <li>Violet: Win x{PAYOUT_MULTIPLIERS.VIOLET} of bet amount.</li>
                                     </ul>
-                                    <p className="text-xs mt-1">Wins if your chosen color matches the round's designated winning color. The winning color is determined independently of the winning number's appearance, with one exception (see below).</p>
                                 </div>
                                 <div>
                                     <strong className="text-foreground">Number Bet:</strong>

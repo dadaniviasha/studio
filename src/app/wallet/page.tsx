@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -12,7 +13,8 @@ import { useToast } from "@/hooks/use-toast";
 import { MIN_WITHDRAWAL_AMOUNT } from '@/lib/constants';
 
 // Dummy balance, replace with actual state management
-let userWalletBalance = 1000; 
+const SIGNUP_BONUS = 50;
+let userWalletBalance = 1000 + SIGNUP_BONUS; 
 
 export default function WalletPage() {
   const [balance, setBalance] = useState<number>(0);

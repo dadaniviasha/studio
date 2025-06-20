@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from 'next/link';
@@ -10,9 +11,13 @@ import { useState, useEffect } from 'react';
 // Dummy balance, replace with actual state management
 const useWalletBalance = () => {
   const [balance, setBalance] = useState<number | null>(null);
+  const SIGNUP_BONUS = 50;
   useEffect(() => {
     // Simulate fetching balance
-    setBalance(1000); 
+    // In a real app, this would come from a global state/context or API
+    // For now, mirroring the page.tsx initial balance
+    const initialBalance = 1000 + SIGNUP_BONUS; 
+    setBalance(initialBalance); 
   }, []);
   return balance;
 };
