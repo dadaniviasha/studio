@@ -6,7 +6,7 @@ export const PAYOUT_MULTIPLIERS = {
   GREEN: 2,
   VIOLET: 5,
   NUMBER: 9,
-  NUMBER_AND_COLOR: 15, // Payout for correctly guessing both number and its specific color
+  // NUMBER_AND_COLOR: 15, // This is removed as bets are now separate
 };
 
 export const GAME_ROUND_DURATION_SECONDS = 60; // e.g., 1 minute betting time

@@ -55,3 +55,9 @@ export interface GameRound {
   status: "betting" | "processing" | "completed";
   result?: GameResult;
 }
+
+// Payload from BettingArea to HomePage
+export interface BetSubmission {
+  colorBet?: { color: ColorOption; amount: number };
+  numberBet?: { number: NumberOption; amount: number };
+}
