@@ -33,8 +33,6 @@ export default function HomePage() {
   const [isBettingPhase, setIsBettingPhase] = useState(true);
   const [activeBets, setActiveBets] = useState<BetType[]>(initialBets);
   
-  // Balance state is now primarily managed by AuthContext for logged-in users
-  // Local state for guest or as a reflection of auth context
   const [currentDisplayedBalance, setCurrentDisplayedBalance] = useState<number>(GUEST_INITIAL_BALANCE);
   
   const [round, setRound] = useState<GameRound>({
@@ -44,7 +42,6 @@ export default function HomePage() {
     status: 'betting'
   });
   const { toast } = useToast();
-  // const [bonusNotified, setBonusNotified] = useState(false); // Signup bonus handled by AuthContext now
 
   const betPlacedSoundRef = useRef<HTMLAudioElement | null>(null);
   const winSoundRef = useRef<HTMLAudioElement | null>(null);
@@ -63,15 +60,14 @@ export default function HomePage() {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-        betPlacedSoundRef.current = new Audio(SILENT_SOUND_PLACEHOLDER /* Replace with '/sounds/bet-placed.mp3' */);
-        winSoundRef.current = new Audio(SILENT_SOUND_PLACEHOLDER /* Replace with '/sounds/win.mp3' */);
-        loseSoundRef.current = new Audio(SILENT_SOUND_PLACEHOLDER /* Replace with '/sounds/lose.mp3' */);
+        betPlacedSoundRef.current = new Audio(SILENT_SOUND_PLACEHOLDER /* Replace with '/sounds/bet-placed.mp3' in public/sounds/ */);
+        winSoundRef.current = new Audio(SILENT_SOUND_PLACEHOLDER /* Replace with '/sounds/win.mp3' in public/sounds/ */);
+        loseSoundRef.current = new Audio(SILENT_SOUND_PLACEHOLDER /* Replace with '/sounds/lose.mp3' in public/sounds/ */);
         
         betPlacedSoundRef.current.preload = "auto";
         winSoundRef.current.preload = "auto";
         loseSoundRef.current.preload = "auto";
     }
-    // Signup bonus notification is now handled by AuthContext on signup.
   }, []);
 
   const playLocalSound = (soundRef: React.RefObject<HTMLAudioElement>) => {
@@ -84,23 +80,65 @@ export default function HomePage() {
     setRound(prev => ({ ...prev, status: 'processing' }));
 
     setTimeout(() => {
-      const winningNumber = Math.floor(Math.random() * 10) as NumberOption;
-      let determinedWinningColor: ColorOption;
+      let newResult: GameResult;
+      const adminDefinedResultString = localStorage.getItem('adminDefinedNextResult');
 
-      if (winningNumber === 0 || winningNumber === 5) {
-        determinedWinningColor = 'VIOLET';
+      if (adminDefinedResultString) {
+        try {
+          const adminResult = JSON.parse(adminDefinedResultString) as Partial<GameResult>;
+          if (adminResult.winningNumber !== undefined && adminResult.winningColor) {
+            newResult = {
+              roundId: round.id,
+              winningNumber: adminResult.winningNumber,
+              winningColor: adminResult.winningColor,
+              timestamp: Date.now(),
+              finalizedBy: adminResult.finalizedBy || 'admin', 
+            };
+            toast({ title: "Admin Result Applied", description: `Result set by admin: No. ${newResult.winningNumber}, Color ${newResult.winningColor}`, duration: 5000 });
+          } else {
+            throw new Error("Incomplete admin result data from localStorage.");
+          }
+        } catch (error) {
+          console.error("Error parsing admin result from localStorage, generating random:", error);
+          // Fallback to random generation if parsing fails or data is incomplete
+          const winningNumber = Math.floor(Math.random() * 10) as NumberOption;
+          let determinedWinningColor: ColorOption;
+          if (winningNumber === 0 || winningNumber === 5) {
+            determinedWinningColor = 'VIOLET';
+          } else {
+            const availableColors: ColorOption[] = ['RED', 'GREEN', 'VIOLET'];
+            determinedWinningColor = availableColors[Math.floor(Math.random() * availableColors.length)];
+          }
+          newResult = {
+            roundId: round.id,
+            winningNumber,
+            winningColor: determinedWinningColor,
+            timestamp: Date.now(),
+            finalizedBy: 'random',
+          };
+        } finally {
+            localStorage.removeItem('adminDefinedNextResult'); // Clear after use or if error
+        }
       } else {
-        const availableColors: ColorOption[] = ['RED', 'GREEN', 'VIOLET'];
-        determinedWinningColor = availableColors[Math.floor(Math.random() * availableColors.length)];
+        // Default random generation
+        const winningNumber = Math.floor(Math.random() * 10) as NumberOption;
+        let determinedWinningColor: ColorOption;
+  
+        if (winningNumber === 0 || winningNumber === 5) {
+          determinedWinningColor = 'VIOLET';
+        } else {
+          const availableColors: ColorOption[] = ['RED', 'GREEN', 'VIOLET'];
+          determinedWinningColor = availableColors[Math.floor(Math.random() * availableColors.length)];
+        }
+        
+        newResult = {
+          roundId: round.id,
+          winningNumber,
+          winningColor: determinedWinningColor,
+          timestamp: Date.now(),
+          finalizedBy: 'random', 
+        };
       }
-      
-      const newResult: GameResult = {
-        roundId: round.id,
-        winningNumber,
-        winningColor: determinedWinningColor,
-        timestamp: Date.now(),
-        finalizedBy: 'random', 
-      };
 
       setCurrentResult(newResult);
       setResultHistory(prev => [newResult, ...prev.slice(0, 9)]); 
@@ -126,10 +164,6 @@ export default function HomePage() {
         if (bet.selectedColor !== null) { 
           if (bet.selectedColor === newResult.winningColor) {
             isWin = true; 
-            // Note: If both number and color bets were placed as one item, this logic might need to be smarter
-            // For now, assuming color and number parts of a "combined" bet are evaluated independently for their respective portions
-            // Or if they are truly separate bet objects, this is fine.
-            // The current BetSubmission creates separate bet objects, so this should be fine.
             payoutAmount += bet.amount * PAYOUT_MULTIPLIERS[bet.selectedColor as Exclude<ColorOption, null>];
           }
         }
@@ -147,9 +181,9 @@ export default function HomePage() {
       
       const newBalance = currentDisplayedBalance + totalWinningsThisRound;
       if (currentUser) {
-        updateAuthBalance(newBalance); // Update context and localStorage
+        updateAuthBalance(newBalance); 
       }
-      setCurrentDisplayedBalance(newBalance); // Update local display
+      setCurrentDisplayedBalance(newBalance); 
       
       if (anyBetWon) {
         toast({ 
@@ -177,7 +211,6 @@ export default function HomePage() {
           endTime: Date.now() + GAME_ROUND_DURATION_SECONDS * 1000,
           status: 'betting'
         });
-        // Clear processed bets for the *just ended* round
         setActiveBets(prev => prev.filter(bet => !bet.isProcessed || bet.roundId !== newResult.roundId)); 
         setIsBettingPhase(true);
       }, RESULT_PROCESSING_DURATION_SECONDS * 1000);
@@ -245,9 +278,9 @@ export default function HomePage() {
     const newBal = currentDisplayedBalance - totalAmountToBet;
     
     if (currentUser) {
-      updateAuthBalance(newBal); // Update context and localStorage
+      updateAuthBalance(newBal); 
     }
-    setCurrentDisplayedBalance(newBal); // Update local display
+    setCurrentDisplayedBalance(newBal); 
 
 
     toast({ title: "Bets Placed!", description: betDescriptions.join(' & ') + '.' });
@@ -299,7 +332,7 @@ export default function HomePage() {
                     )}
                 </CardContent>
             </Card>
-            <Card className="shadow-xl bg-card/80 backdrop-blur-sm">
+             <Card className="shadow-xl bg-card/80 backdrop-blur-sm">
                 <CardHeader>
                     <CardTitle className="text-xl font-headline text-primary flex items-center">
                         <Info className="mr-2 h-6 w-6" /> Game Rules & Payouts

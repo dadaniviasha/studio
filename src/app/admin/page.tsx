@@ -5,6 +5,7 @@ import { AppHeader } from '@/components/layout/AppHeader';
 import { AppFooter } from '@/components/layout/AppFooter';
 import { ResultController } from '@/components/admin/ResultController';
 import { PendingWithdrawals } from '@/components/admin/PendingWithdrawals';
+import { CurrentBetsOverview } from '@/components/admin/CurrentBetsOverview';
 import type { GameResult } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { ShieldCheck, AlertTriangle } from 'lucide-react';
@@ -16,7 +17,6 @@ export default function AdminPage() {
   const { toast } = useToast();
   const { currentUser, loading: authLoading } = useAuth();
   
-  // This would typically interact with a backend service or global state
   const handleSetNextResult = (result: Partial<GameResult>) => {
     if (result.winningNumber === undefined || result.winningColor === undefined) {
       console.error("Admin attempted to set an incomplete result:", result);
@@ -28,11 +28,22 @@ export default function AdminPage() {
       return;
     }
     
-    console.log("Admin set next result:", result);
-    toast({
-      title: "Result Instruction Sent",
-      description: `Instruction to set Number: ${result.winningNumber}, Color: ${result.winningColor} for the next round has been processed. Finalized by: ${result.finalizedBy}`,
-    });
+    // Store the admin-defined result in localStorage
+    try {
+      localStorage.setItem('adminDefinedNextResult', JSON.stringify(result));
+      console.log("Admin set next result, stored in localStorage:", result);
+      toast({
+        title: "Result Instruction Stored",
+        description: `Instruction to set Number: ${result.winningNumber}, Color: ${result.winningColor} for the next round has been stored. Finalized by: ${result.finalizedBy}`,
+      });
+    } catch (error) {
+      console.error("Error saving admin result to localStorage:", error);
+      toast({
+        title: "Storage Error",
+        description: "Could not save the admin-defined result.",
+        variant: "destructive",
+      });
+    }
   };
 
   if (authLoading) {
@@ -81,9 +92,13 @@ export default function AdminPage() {
           <PendingWithdrawals />
         </div>
         
+        <div className="mt-8">
+            <CurrentBetsOverview />
+        </div>
+
         <div className="mt-8 p-6 border rounded-lg bg-card/50 backdrop-blur-sm">
             <h2 className="text-2xl font-headline text-primary mb-4">More Admin Tools</h2>
-            <p className="text-muted-foreground">Additional administrative features (e.g., user management, site statistics, bet history overview) would be available here.</p>
+            <p className="text-muted-foreground">Additional administrative features (e.g., user management, site statistics) would be available here.</p>
         </div>
 
       </main>
