@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -42,12 +43,14 @@ export function BettingArea({ onBetPlaced, disabled }: BettingAreaProps) {
 
   const toggleColorSelection = (color: ColorOption) => {
     setSelectedColor(prev => prev === color ? null : color);
-    if (colorBetAmount === '') setColorBetAmount(MIN_BET_AMOUNT.toString());
+    if (colorBetAmount === '' && (selectedColor === null || selectedColor !== color) ) setColorBetAmount(MIN_BET_AMOUNT.toString());
+    if (selectedColor === color) setColorBetAmount(''); // Clear amount if deselecting
   };
 
   const toggleNumberSelection = (number: NumberOption) => {
     setSelectedNumber(prev => prev === number ? null : number);
-     if (numberBetAmount === '') setNumberBetAmount(MIN_BET_AMOUNT.toString());
+     if (numberBetAmount === '' && (selectedNumber === null || selectedNumber !== number)) setNumberBetAmount(MIN_BET_AMOUNT.toString());
+     if (selectedNumber === number) setNumberBetAmount(''); // Clear amount if deselecting
   };
 
   const handlePlaceBet = () => {
@@ -97,7 +100,9 @@ export function BettingArea({ onBetPlaced, disabled }: BettingAreaProps) {
 
     onBetPlaced(submission);
     
-    // Optionally reset amounts after successful submission, or HomePage can signal this
+    // Reset selections and amounts after attempting to place bet
+    // setSelectedColor(null);
+    // setSelectedNumber(null);
     // setColorBetAmount('');
     // setNumberBetAmount('');
   };
@@ -112,15 +117,15 @@ export function BettingArea({ onBetPlaced, disabled }: BettingAreaProps) {
   return (
     <Card className="w-full shadow-2xl bg-card/80 backdrop-blur-sm">
       <CardHeader>
-        <CardTitle className="text-2xl font-headline text-primary flex items-center">
+        {/* <CardTitle className="text-2xl font-headline text-primary flex items-center">
           <Zap className="mr-2 h-7 w-7" /> Place Your Bets
-        </CardTitle>
-        <CardDescription>Select a color and/or a number. Enter amounts for each.</CardDescription>
+        </CardTitle> */}
+        <CardDescription className="pt-2 text-center text-base">Select a color and/or a number. Enter amounts for each.</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-8">
+      <CardContent className="space-y-6">
         {/* Color Betting Section */}
         <div className="p-4 border rounded-lg bg-background/30">
-          <Label className="text-lg font-medium text-foreground/80 mb-3 block">1. Choose Color (Optional)</Label>
+          {/* <Label className="text-lg font-medium text-foreground/80 mb-3 block">1. Choose Color (Optional)</Label> */}
           <div className="grid grid-cols-3 gap-3 md:gap-4 mb-4">
             {(['RED', 'GREEN', 'VIOLET'] as ColorOption[]).map((color) => (
               <ColorButton
@@ -163,7 +168,7 @@ export function BettingArea({ onBetPlaced, disabled }: BettingAreaProps) {
 
         {/* Number Betting Section */}
         <div className="p-4 border rounded-lg bg-background/30">
-          <Label className="text-lg font-medium text-foreground/80 mb-3 block">2. Choose Number (Optional)</Label>
+          {/* <Label className="text-lg font-medium text-foreground/80 mb-3 block">2. Choose Number (Optional)</Label> */}
           <div className="grid grid-cols-5 gap-2 md:gap-3 mb-4">
             {([0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as NumberOption[]).map((num) => (
               <NumberButton

@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppFooter } from '@/components/layout/AppFooter';
 import { BettingArea } from '@/components/game/BettingArea';
@@ -19,6 +20,18 @@ let currentRoundId = Date.now();
 let userBalance = 1000; // Simulating user balance
 const initialBets: BetType[] = [];
 
+// Placeholder sound data URIs (silent WAV)
+const SILENT_SOUND_PLACEHOLDER = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAVAAAAHYAAABACAA';
+
+
+const playSound = (soundSrc: string) => {
+  if (typeof window !== 'undefined') {
+    const audio = new Audio(soundSrc);
+    audio.play().catch(error => console.warn("Audio play failed:", error)); // Warn instead of error for placeholders
+  }
+};
+
+
 export default function HomePage() {
   const [currentResult, setCurrentResult] = useState<GameResult | null>(null);
   const [resultHistory, setResultHistory] = useState<GameResult[]>([]);
@@ -32,6 +45,29 @@ export default function HomePage() {
     status: 'betting'
   });
   const { toast } = useToast();
+
+  const betPlacedSoundRef = useRef<HTMLAudioElement | null>(null);
+  const winSoundRef = useRef<HTMLAudioElement | null>(null);
+  const loseSoundRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    // Initialize audio elements client-side
+    if (typeof window !== 'undefined') {
+        betPlacedSoundRef.current = new Audio(SILENT_SOUND_PLACEHOLDER /* Replace with '/sounds/bet-placed.mp3' */);
+        winSoundRef.current = new Audio(SILENT_SOUND_PLACEHOLDER /* Replace with '/sounds/win.mp3' */);
+        loseSoundRef.current = new Audio(SILENT_SOUND_PLACEHOLDER /* Replace with '/sounds/lose.mp3' */);
+        
+        // Preload audio
+        betPlacedSoundRef.current.preload = "auto";
+        winSoundRef.current.preload = "auto";
+        loseSoundRef.current.preload = "auto";
+    }
+  }, []);
+
+  const playLocalSound = (soundRef: React.RefObject<HTMLAudioElement>) => {
+    soundRef.current?.play().catch(error => console.warn("Audio play failed:", error));
+  };
+
 
   const processRoundEnd = useCallback(() => {
     setIsBettingPhase(false);
@@ -54,7 +90,12 @@ export default function HomePage() {
       setResultHistory(prev => [newResult, ...prev.slice(0, 9)]); 
 
       let totalWinningsThisRound = 0;
+      let anyBetWon = false;
+      const betsPlacedThisRound = activeBets.filter(bet => bet.roundId === round.id && !bet.isProcessed);
+
       const updatedBets = activeBets.map(bet => {
+        if (bet.roundId !== round.id || bet.isProcessed) return bet; // Process only current round's unprocessed bets
+
         let isWin = false;
         let payoutAmount = 0;
         const processedBet = { ...bet, isWin: false, payout: 0, isProcessed: true };
@@ -78,6 +119,7 @@ export default function HomePage() {
           totalWinningsThisRound += payoutAmount;
           processedBet.isWin = true;
           processedBet.payout = payoutAmount;
+          anyBetWon = true;
         }
         return processedBet;
       });
@@ -87,12 +129,20 @@ export default function HomePage() {
       setCurrentBalance(newBalance);
       userBalance = newBalance; 
       
-      const placedBetsCount = activeBets.filter(b => !b.isProcessed).length;
-
-      if (totalWinningsThisRound > 0) {
-        toast({ title: "You Won!", description: `Congratulations! You won ₹${totalWinningsThisRound.toFixed(2)} this round.`});
-      } else if (placedBetsCount > 0) {
-        toast({ title: "Round Over", description: "Better luck next time!", variant: "default"});
+      if (anyBetWon) {
+        toast({ 
+            title: "🎉 You Won! 🎉", 
+            description: `Congratulations! You won a total of ₹${totalWinningsThisRound.toFixed(2)} this round.`,
+            variant: "default", // Using default, could be styled more uniquely
+        });
+        playLocalSound(winSoundRef);
+      } else if (betsPlacedThisRound.length > 0) { // Only show "lose" if bets were actually placed
+        toast({ 
+            title: "Round Over", 
+            description: "No wins this time. Better luck next round!", 
+            variant: "default" // Using default, could be styled more uniquely
+        });
+        playLocalSound(loseSoundRef);
       }
 
       setTimeout(() => {
@@ -103,7 +153,8 @@ export default function HomePage() {
           endTime: Date.now() + GAME_ROUND_DURATION_SECONDS * 1000,
           status: 'betting'
         });
-        setActiveBets([]); 
+        // Clear only processed bets related to the completed round or all active bets if desired
+        setActiveBets(prev => prev.filter(bet => !bet.isProcessed || bet.roundId !== newResult.roundId)); 
         setIsBettingPhase(true);
       }, RESULT_PROCESSING_DURATION_SECONDS * 1000);
 
@@ -127,7 +178,7 @@ export default function HomePage() {
       const colorBetAmount = submission.colorBet.amount;
       if (colorBetAmount >= MIN_BET_AMOUNT) {
         newActiveBets.push({
-          id: `bet-color-${Date.now()}-${Math.random()}`,
+          id: `bet-color-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
           userId: 'currentUser',
           roundId: round.id,
           selectedColor: submission.colorBet.color,
@@ -143,7 +194,7 @@ export default function HomePage() {
       const numberBetAmount = submission.numberBet.amount;
       if (numberBetAmount >= MIN_BET_AMOUNT) {
         newActiveBets.push({
-          id: `bet-number-${Date.now()}-${Math.random()}`,
+          id: `bet-number-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
           userId: 'currentUser',
           roundId: round.id,
           selectedColor: null,
@@ -156,6 +207,7 @@ export default function HomePage() {
     }
 
     if (newActiveBets.length === 0) {
+      // This case should ideally be caught by BettingArea's validation, but good to have a fallback.
       toast({ title: "No Valid Bets Placed", description: `Ensure valid selections and amounts (min ₹${MIN_BET_AMOUNT}).`, variant: "destructive" });
       return;
     }
@@ -166,6 +218,7 @@ export default function HomePage() {
     userBalance = newBal;
 
     toast({ title: "Bets Placed!", description: betDescriptions.join(' & ') + '.' });
+    playLocalSound(betPlacedSoundRef);
   };
   
   useEffect(() => {
@@ -216,6 +269,7 @@ export default function HomePage() {
                                     <p>Win x{PAYOUT_MULTIPLIERS.NUMBER} of bet amount.</p>
                                     <p className="text-xs mt-1">Wins if your chosen number matches the winning number.</p>
                                 </div>
+                                 <p className="italic">Note: Bets on color and number are independent. You can win one, both, or neither.</p>
                             </AccordionContent>
                         </AccordionItem>
                         <AccordionItem value="item-3">
@@ -258,10 +312,10 @@ export default function HomePage() {
                     <CardDescription>Bets placed in the current round.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    {activeBets.filter(b => !b.isProcessed).length > 0 ? (
+                    {activeBets.filter(b => !b.isProcessed && b.roundId === round.id).length > 0 ? (
                         <ScrollArea className="h-[150px]">
                         <ul className="space-y-2">
-                            {activeBets.filter(b => !b.isProcessed).map(bet => {
+                            {activeBets.filter(b => !b.isProcessed && b.roundId === round.id).map(bet => {
                                 let selectionText = "";
                                 if (bet.selectedNumber !== null) {
                                     selectionText = `No. ${bet.selectedNumber}`;

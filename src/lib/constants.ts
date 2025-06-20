@@ -1,3 +1,4 @@
+
 export const MIN_BET_AMOUNT = 5;
 export const MIN_WITHDRAWAL_AMOUNT = 200;
 
@@ -9,7 +10,7 @@ export const PAYOUT_MULTIPLIERS = {
   // NUMBER_AND_COLOR: 15, // This is removed as bets are now separate
 };
 
-export const GAME_ROUND_DURATION_SECONDS = 60; // e.g., 1 minute betting time
+export const GAME_ROUND_DURATION_SECONDS = 30; // Updated from 60 to 30
 export const RESULT_PROCESSING_DURATION_SECONDS = 10; // Time to show result before new round
 
 // Defines the primary color and if Violet is also applicable for each number
