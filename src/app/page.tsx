@@ -248,7 +248,39 @@ export default function HomePage() {
           <div className="lg:col-span-2 space-y-6 lg:space-y-8">
             <GameCountdown onTimerEnd={processRoundEnd} isProcessing={!isBettingPhase} roundId={round.id} />
             <BettingArea onBetPlaced={handleBetPlaced} disabled={!isBettingPhase} />
-            
+          </div>
+          <div className="lg:col-span-1 space-y-6 lg:space-y-8">
+            <ResultsDisplay currentResult={currentResult} history={resultHistory} />
+            <Card className="shadow-xl bg-card/80 backdrop-blur-sm">
+                <CardHeader>
+                    <CardTitle className="text-xl font-headline text-primary">My Active Bets</CardTitle>
+                    <CardDescription>Bets placed in the current round.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {activeBets.filter(b => !b.isProcessed && b.roundId === round.id).length > 0 ? (
+                        <ScrollArea className="h-[150px]">
+                        <ul className="space-y-2">
+                            {activeBets.filter(b => !b.isProcessed && b.roundId === round.id).map(bet => {
+                                let selectionText = "";
+                                if (bet.selectedNumber !== null) {
+                                    selectionText = `No. ${bet.selectedNumber}`;
+                                } else if (bet.selectedColor !== null) {
+                                    selectionText = `${bet.selectedColor}`;
+                                }
+                                return (
+                                <li key={bet.id} className="text-sm p-2 bg-background/50 rounded-md flex justify-between">
+                                    <span>{selectionText}</span>
+                                    <span className="font-semibold">₹{bet.amount}</span>
+                                </li>
+                                );
+                            })}
+                        </ul>
+                        </ScrollArea>
+                    ) : (
+                        <p className="text-sm text-muted-foreground text-center py-4">No active bets for this round.</p>
+                    )}
+                </CardContent>
+            </Card>
             <Card className="shadow-xl bg-card/80 backdrop-blur-sm">
                 <CardHeader>
                     <CardTitle className="text-xl font-headline text-primary flex items-center">
@@ -320,40 +352,6 @@ export default function HomePage() {
                     </Accordion>
                 </CardContent>
             </Card>
-
-          </div>
-          <div className="lg:col-span-1 space-y-6 lg:space-y-8">
-            <ResultsDisplay currentResult={currentResult} history={resultHistory} />
-            <Card className="shadow-xl bg-card/80 backdrop-blur-sm">
-                <CardHeader>
-                    <CardTitle className="text-xl font-headline text-primary">My Active Bets</CardTitle>
-                    <CardDescription>Bets placed in the current round.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    {activeBets.filter(b => !b.isProcessed && b.roundId === round.id).length > 0 ? (
-                        <ScrollArea className="h-[150px]">
-                        <ul className="space-y-2">
-                            {activeBets.filter(b => !b.isProcessed && b.roundId === round.id).map(bet => {
-                                let selectionText = "";
-                                if (bet.selectedNumber !== null) {
-                                    selectionText = `No. ${bet.selectedNumber}`;
-                                } else if (bet.selectedColor !== null) {
-                                    selectionText = `${bet.selectedColor}`;
-                                }
-                                return (
-                                <li key={bet.id} className="text-sm p-2 bg-background/50 rounded-md flex justify-between">
-                                    <span>{selectionText}</span>
-                                    <span className="font-semibold">₹{bet.amount}</span>
-                                </li>
-                                );
-                            })}
-                        </ul>
-                        </ScrollArea>
-                    ) : (
-                        <p className="text-sm text-muted-foreground text-center py-4">No active bets for this round.</p>
-                    )}
-                </CardContent>
-            </Card>
           </div>
         </div>
       </main>
@@ -361,3 +359,5 @@ export default function HomePage() {
     </div>
   );
 }
+
+    
