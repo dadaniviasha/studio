@@ -10,7 +10,6 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Wand2, Settings, Shuffle } from 'lucide-react';
 import type { ColorOption, NumberOption, GameResult } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
-// NUMBER_COLORS is not used for logic here anymore but could be for display hints if needed.
 
 interface ResultControllerProps {
   onSetResult: (result: Partial<GameResult>) => void;
@@ -26,12 +25,19 @@ export function ResultController({ onSetResult }: ResultControllerProps) {
     let resultToSet: Partial<GameResult>;
 
     if (controlMode === 'random') {
-      const winningNumber = Math.floor(Math.random() * 10) as NumberOption;
-      const availableColors: ColorOption[] = ['RED', 'GREEN', 'VIOLET'];
-      const winningColor = availableColors[Math.floor(Math.random() * availableColors.length)];
+      const randomNumber = Math.floor(Math.random() * 10) as NumberOption;
+      let randomColor: ColorOption;
+
+      if (randomNumber === 0 || randomNumber === 5) {
+        randomColor = 'VIOLET';
+      } else {
+        const availableColors: ColorOption[] = ['RED', 'GREEN', 'VIOLET'];
+        randomColor = availableColors[Math.floor(Math.random() * availableColors.length)];
+      }
+      
       resultToSet = {
-        winningNumber,
-        winningColor,
+        winningNumber: randomNumber,
+        winningColor: randomColor,
         finalizedBy: 'random',
       };
       onSetResult(resultToSet);
@@ -45,16 +51,22 @@ export function ResultController({ onSetResult }: ResultControllerProps) {
         return;
     }
     
+    let effectiveWinningColor = manualColor as ColorOption;
+    if (manualNumber === 0 || manualNumber === 5) {
+        effectiveWinningColor = 'VIOLET';
+        if (manualColor !== 'VIOLET' && manualColor !== '') { // Only toast if admin's choice was different and overridden
+            toast({ title: "Color Override", description: `Number ${manualNumber} selected. Winning color automatically set to VIOLET.`, variant: "default", duration: 4000 });
+        }
+    }
+    
     resultToSet = {
         winningNumber: manualNumber as NumberOption,
-        winningColor: manualColor as ColorOption,
+        winningColor: effectiveWinningColor,
         finalizedBy: 'admin',
     };
 
     onSetResult(resultToSet);
     toast({ title: "Manual Result Set", description: `Next result configured to Number: ${resultToSet.winningNumber}, Color: ${resultToSet.winningColor}.` });
-    // setManualColor(''); // Optionally reset after setting, or let admin see current manual setting
-    // setManualNumber('');
   };
 
   return (
@@ -85,12 +97,21 @@ export function ResultController({ onSetResult }: ResultControllerProps) {
             <h3 className="text-lg font-medium text-foreground/80">Manual Configuration</h3>
             <div>
               <Label htmlFor="manualNumber">Winning Number *</Label>
-              <Select value={manualNumber === '' ? '' : manualNumber.toString()} onValueChange={(value) => setManualNumber(value === '' ? '' : parseInt(value) as NumberOption)}>
+              <Select 
+                value={manualNumber === '' ? '' : manualNumber.toString()} 
+                onValueChange={(value) => {
+                  const numValue = value === '' ? '' : parseInt(value) as NumberOption;
+                  setManualNumber(numValue);
+                  if (numValue === 0 || numValue === 5) {
+                    // Optionally auto-select Violet or at least inform admin if they pick another color
+                    // For now, the override happens at submission time.
+                  }
+                }}
+              >
                 <SelectTrigger id="manualNumber" className="w-full h-12 mt-1">
                   <SelectValue placeholder="Select winning number" />
                 </SelectTrigger>
                 <SelectContent>
-                  {/* <SelectItem value="">None</SelectItem> // Removed as it's mandatory */}
                   {Array.from({ length: 10 }, (_, i) => i as NumberOption).map(num => (
                     <SelectItem key={num} value={num.toString()}>{num}</SelectItem>
                   ))}
@@ -104,13 +125,14 @@ export function ResultController({ onSetResult }: ResultControllerProps) {
                   <SelectValue placeholder="Select winning color" />
                 </SelectTrigger>
                 <SelectContent>
-                  {/* <SelectItem value="">None</SelectItem> // Removed as it's mandatory */}
                   <SelectItem value="RED">Red</SelectItem>
                   <SelectItem value="GREEN">Green</SelectItem>
                   <SelectItem value="VIOLET">Violet</SelectItem>
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground mt-1">Both number and color are required for manual mode.</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Both number and color are required. If number 0 or 5 is selected, winning color will be VIOLET.
+              </p>
             </div>
           </div>
         )}

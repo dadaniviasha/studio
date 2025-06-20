@@ -67,13 +67,19 @@ export default function HomePage() {
 
     setTimeout(() => {
       const winningNumber = Math.floor(Math.random() * 10) as NumberOption;
-      const availableColors: ColorOption[] = ['RED', 'GREEN', 'VIOLET'];
-      const winningColor = availableColors[Math.floor(Math.random() * availableColors.length)];
+      let determinedWinningColor: ColorOption;
+
+      if (winningNumber === 0 || winningNumber === 5) {
+        determinedWinningColor = 'VIOLET';
+      } else {
+        const availableColors: ColorOption[] = ['RED', 'GREEN', 'VIOLET'];
+        determinedWinningColor = availableColors[Math.floor(Math.random() * availableColors.length)];
+      }
       
       const newResult: GameResult = {
         roundId: round.id,
         winningNumber,
-        winningColor, // Independent winning color
+        winningColor: determinedWinningColor,
         timestamp: Date.now(),
         finalizedBy: 'random', 
       };
@@ -94,16 +100,14 @@ export default function HomePage() {
         
         if (bet.selectedNumber !== null) { 
           if (bet.selectedNumber === newResult.winningNumber) {
-            isWin = true; // Win on number bet
+            isWin = true; 
             payoutAmount += bet.amount * PAYOUT_MULTIPLIERS.NUMBER;
           }
         } 
         
         if (bet.selectedColor !== null) { 
           if (bet.selectedColor === newResult.winningColor) {
-             // If this bet was part of a combined bet and number already won, this adds to it
-            // If it's a color-only bet, this is the primary win condition
-            isWin = true; // Win on color bet
+            isWin = true; 
             payoutAmount += bet.amount * PAYOUT_MULTIPLIERS[bet.selectedColor as Exclude<ColorOption, null>];
           }
         }
@@ -256,27 +260,31 @@ export default function HomePage() {
                                         <li>Red / Green: Win x{PAYOUT_MULTIPLIERS.RED} of bet amount.</li>
                                         <li>Violet: Win x{PAYOUT_MULTIPLIERS.VIOLET} of bet amount.</li>
                                     </ul>
-                                    <p className="text-xs mt-1">Wins if your chosen color matches the round's designated winning color. The winning color is determined independently of the winning number's appearance.</p>
+                                    <p className="text-xs mt-1">Wins if your chosen color matches the round's designated winning color. The winning color is determined independently of the winning number's appearance, with one exception (see below).</p>
                                 </div>
                                 <div>
                                     <strong className="text-foreground">Number Bet:</strong>
                                     <p>Win x{PAYOUT_MULTIPLIERS.NUMBER} of bet amount.</p>
                                     <p className="text-xs mt-1">Wins if your chosen number matches the winning number.</p>
                                 </div>
-                                 <p className="italic">Note: Bets on color and number are independent. You can win on your color bet, your number bet, both, or neither, based on the round's outcome.</p>
+                                <div>
+                                    <strong className="text-foreground">Special Condition for Numbers 0 & 5:</strong>
+                                    <p className="text-xs mt-1">If the winning number is 0 or 5, the Winning Color for the round is automatically VIOLET. Bets on VIOLET will win, and bets on RED or GREEN will lose in this specific scenario, regardless of any other color determination.</p>
+                                </div>
+                                 <p className="italic">Note: Bets on color and number are independent. You can win on your color bet, your number bet, both, or neither, based on the round's outcome and the special condition for numbers 0 & 5.</p>
                             </AccordionContent>
                         </AccordionItem>
                         <AccordionItem value="item-3">
                             <AccordionTrigger>Numbers & Their Visual Appearance</AccordionTrigger>
                             <AccordionContent className="text-muted-foreground">
-                                <p className="text-sm mb-2">The colors below are for visual styling of the number balls only and do not determine the round's winning color for betting purposes.</p>
+                                <p className="text-sm mb-2">The colors below are for visual styling of the number balls only and do not determine the round's winning color for betting purposes, except for the special 0/5 rule noted above.</p>
                                 <ul className="list-disc list-inside space-y-1">
-                                    <li><span className="text-red-500 font-semibold">0: Styled Red</span> + <span className="text-purple-500 font-semibold">Violet</span></li>
+                                    <li><span className="text-red-500 font-semibold">0: Styled Red</span> + <span className="text-purple-500 font-semibold">Violet</span> (If 0 wins, round color is VIOLET)</li>
                                     <li><span className="text-green-500 font-semibold">1: Styled Green</span></li>
                                     <li><span className="text-red-500 font-semibold">2: Styled Red</span></li>
                                     <li><span className="text-green-500 font-semibold">3: Styled Green</span></li>
                                     <li><span className="text-red-500 font-semibold">4: Styled Red</span></li>
-                                    <li><span className="text-green-500 font-semibold">5: Styled Green</span> + <span className="text-purple-500 font-semibold">Violet</span></li>
+                                    <li><span className="text-green-500 font-semibold">5: Styled Green</span> + <span className="text-purple-500 font-semibold">Violet</span> (If 5 wins, round color is VIOLET)</li>
                                     <li><span className="text-red-500 font-semibold">6: Styled Red</span></li>
                                     <li><span className="text-green-500 font-semibold">7: Styled Green</span></li>
                                     <li><span className="text-red-500 font-semibold">8: Styled Red</span></li>
