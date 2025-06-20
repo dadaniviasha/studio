@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -23,7 +24,8 @@ export function GameCountdown({ onTimerEnd, isProcessing = false, roundId }: Gam
       setTimeLeft((prevTime) => {
         if (prevTime <= 1) {
           clearInterval(timer);
-          onTimerEnd();
+          // Schedule onTimerEnd to run after the current update cycle
+          setTimeout(() => onTimerEnd(), 0); 
           return 0;
         }
         return prevTime - 1;
