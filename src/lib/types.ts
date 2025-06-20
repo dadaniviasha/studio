@@ -16,7 +16,8 @@ export interface Bet {
 
 export interface GameResult {
   roundId: string;
-  winningColor: ColorOption; // The independently determined winning color for the round
+  /** The independently determined winning color for the round. If winningNumber is 0 or 5, this will be VIOLET. */
+  winningColor: ColorOption;
   winningNumber: NumberOption;
   timestamp: number;
   finalizedBy: "admin" | "random";
@@ -24,14 +25,16 @@ export interface GameResult {
 
 export interface User {
   id: string;
-  username: string; // Or some identifier
+  username: string;
+  email: string; // Added for auth
   walletBalance: number;
+  // Password is not stored here for actual use, but might be used in simulation context
 }
 
 export interface WalletTransaction {
   id: string;
   userId: string;
-  type: "deposit" | "withdrawal" | "bet_placed" | "bet_won";
+  type: "deposit" | "withdrawal" | "bet_placed" | "bet_won" | "signup_bonus";
   amount: number;
   timestamp: number;
   relatedBetId?: string;

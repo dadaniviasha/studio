@@ -8,57 +8,88 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { DollarSign, ArrowDownCircle, ArrowUpCircle, WalletCards } from 'lucide-react';
+import { DollarSign, ArrowDownCircle, ArrowUpCircle, WalletCards, AlertTriangle } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { MIN_WITHDRAWAL_AMOUNT } from '@/lib/constants';
-
-// Dummy balance, replace with actual state management
-const SIGNUP_BONUS = 50;
-let userWalletBalance = 1000 + SIGNUP_BONUS; 
+import { useAuth } from '@/contexts/AuthContext';
+import Link from 'next/link';
 
 export default function WalletPage() {
-  const [balance, setBalance] = useState<number>(0);
+  const { currentUser, updateBalance, loading: authLoading } = useAuth();
   const [depositAmount, setDepositAmount] = useState('');
   const [withdrawalAmount, setWithdrawalAmount] = useState('');
   const { toast } = useToast();
 
-  useEffect(() => {
-    // Simulate fetching balance
-    setBalance(userWalletBalance);
-  }, []);
+  const currentBalance = currentUser ? currentUser.walletBalance : 0;
 
   const handleDeposit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!currentUser) {
+      toast({ title: "Login Required", description: "Please log in to deposit funds.", variant: "destructive" });
+      return;
+    }
     const amount = parseFloat(depositAmount);
     if (isNaN(amount) || amount <= 0) {
       toast({ title: "Invalid Amount", description: "Please enter a valid amount to deposit.", variant: "destructive" });
       return;
     }
-    // Simulate deposit
-    userWalletBalance += amount;
-    setBalance(userWalletBalance);
+    const newBalance = currentBalance + amount;
+    updateBalance(newBalance);
     setDepositAmount('');
     toast({ title: "Deposit Successful", description: `₹${amount.toFixed(2)} has been added to your wallet.` });
   };
 
   const handleWithdrawal = (e: React.FormEvent) => {
     e.preventDefault();
+     if (!currentUser) {
+      toast({ title: "Login Required", description: "Please log in to request a withdrawal.", variant: "destructive" });
+      return;
+    }
     const amount = parseFloat(withdrawalAmount);
     if (isNaN(amount) || amount < MIN_WITHDRAWAL_AMOUNT) {
       toast({ title: "Invalid Amount", description: `Minimum withdrawal amount is ₹${MIN_WITHDRAWAL_AMOUNT}.`, variant: "destructive" });
       return;
     }
-    if (amount > balance) {
+    if (amount > currentBalance) {
       toast({ title: "Insufficient Balance", description: "You don't have enough funds to withdraw this amount.", variant: "destructive" });
       return;
     }
-    // Simulate withdrawal request
-    // In a real app, this would create a WithdrawalRequest record for admin approval
-    userWalletBalance -= amount; // For immediate UI feedback, though real deduction is after approval
-    setBalance(userWalletBalance);
+    const newBalance = currentBalance - amount;
+    updateBalance(newBalance);
     setWithdrawalAmount('');
-    toast({ title: "Withdrawal Requested", description: `Your request to withdraw ₹${amount.toFixed(2)} is pending approval.` });
+    // Simulate API call for withdrawal request
+    toast({ title: "Withdrawal Requested", description: `Your request to withdraw ₹${amount.toFixed(2)} is notionally pending approval (simulation).` });
   };
+
+  if (authLoading) {
+    return (
+      <div className="flex flex-col min-h-screen bg-background text-foreground">
+        <AppHeader />
+        <main className="flex-grow container mx-auto px-4 py-8 flex items-center justify-center">
+          <p className="text-xl text-muted-foreground">Loading wallet...</p>
+        </main>
+        <AppFooter />
+      </div>
+    );
+  }
+
+  if (!currentUser) {
+    return (
+      <div className="flex flex-col min-h-screen bg-background text-foreground">
+        <AppHeader />
+        <main className="flex-grow container mx-auto px-4 py-8 flex flex-col items-center justify-center text-center">
+            <AlertTriangle className="h-16 w-16 text-destructive mb-4" />
+            <h1 className="text-3xl font-bold mb-2">Access Denied</h1>
+            <p className="text-lg text-muted-foreground mb-6">You need to be logged in to access your wallet.</p>
+            <Link href="/login">
+                <Button size="lg">Login to Wallet</Button>
+            </Link>
+        </main>
+        <AppFooter />
+      </div>
+    );
+  }
+
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
@@ -67,13 +98,13 @@ export default function WalletPage() {
         <Card className="max-w-2xl mx-auto mb-8 shadow-xl bg-card/80 backdrop-blur-sm">
           <CardHeader className="text-center">
             <WalletCards className="mx-auto h-16 w-16 text-primary mb-4" />
-            <CardTitle className="text-3xl font-headline">Your Wallet</CardTitle>
+            <CardTitle className="text-3xl font-headline">{currentUser.username}&apos;s Wallet</CardTitle>
             <CardDescription className="text-lg">Manage your funds and transactions.</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-center py-6 border-b border-t border-border/40 my-6">
               <p className="text-sm text-muted-foreground">CURRENT BALANCE</p>
-              <p className="text-5xl font-bold text-primary mt-1">₹{balance.toFixed(2)}</p>
+              <p className="text-5xl font-bold text-primary mt-1">₹{currentBalance.toFixed(2)}</p>
             </div>
           </CardContent>
         </Card>
@@ -99,7 +130,7 @@ export default function WalletPage() {
                       onChange={(e) => setDepositAmount(e.target.value)}
                       placeholder="Enter amount"
                       className="pl-10 h-12"
-                      min="1" // Minimum deposit, can be a constant
+                      min="1" 
                     />
                   </div>
                 </div>
@@ -146,14 +177,13 @@ export default function WalletPage() {
             </form>
           </Card>
         </div>
-        {/* Placeholder for transaction history */}
         <Card className="max-w-4xl mx-auto mt-8 shadow-xl bg-card/80 backdrop-blur-sm">
             <CardHeader>
                 <CardTitle className="text-xl font-headline">Transaction History</CardTitle>
                 <CardDescription>Your recent wallet activity.</CardDescription>
             </CardHeader>
             <CardContent>
-                <p className="text-center text-muted-foreground py-8">Transaction history feature coming soon.</p>
+                <p className="text-center text-muted-foreground py-8">Transaction history feature coming soon (simulation).</p>
             </CardContent>
         </Card>
       </main>

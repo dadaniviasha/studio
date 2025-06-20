@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from 'react';
-import { DollarSign, Zap } from 'lucide-react';
+import { DollarSign, Zap, UserX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,13 +12,15 @@ import type { ColorOption, NumberOption, BetSubmission } from '@/lib/types';
 import { MIN_BET_AMOUNT } from '@/lib/constants';
 import { ColorButton } from './ColorButton';
 import { NumberButton } from './NumberButton';
+import Link from 'next/link';
 
 interface BettingAreaProps {
   onBetPlaced: (submission: BetSubmission) => void;
-  disabled?: boolean; // If game is not in betting phase
+  disabled?: boolean;
+  isLoggedIn: boolean;
 }
 
-export function BettingArea({ onBetPlaced, disabled }: BettingAreaProps) {
+export function BettingArea({ onBetPlaced, disabled, isLoggedIn }: BettingAreaProps) {
   const [selectedColor, setSelectedColor] = useState<ColorOption | null>(null);
   const [selectedNumber, setSelectedNumber] = useState<NumberOption | null>(null);
   const [colorBetAmount, setColorBetAmount] = useState<string>('');
@@ -27,7 +29,7 @@ export function BettingArea({ onBetPlaced, disabled }: BettingAreaProps) {
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'color' | 'number') => {
     const value = e.target.value;
-    if (/^\d*$/.test(value)) { // Allow only numbers
+    if (/^\d*$/.test(value)) { 
       if (type === 'color') {
         setColorBetAmount(value);
       } else {
@@ -44,16 +46,25 @@ export function BettingArea({ onBetPlaced, disabled }: BettingAreaProps) {
   const toggleColorSelection = (color: ColorOption) => {
     setSelectedColor(prev => prev === color ? null : color);
     if (colorBetAmount === '' && (selectedColor === null || selectedColor !== color) ) setColorBetAmount(MIN_BET_AMOUNT.toString());
-    if (selectedColor === color) setColorBetAmount(''); // Clear amount if deselecting
+    if (selectedColor === color && colorBetAmount !== '') setColorBetAmount(''); 
   };
 
   const toggleNumberSelection = (number: NumberOption) => {
     setSelectedNumber(prev => prev === number ? null : number);
      if (numberBetAmount === '' && (selectedNumber === null || selectedNumber !== number)) setNumberBetAmount(MIN_BET_AMOUNT.toString());
-     if (selectedNumber === number) setNumberBetAmount(''); // Clear amount if deselecting
+     if (selectedNumber === number && numberBetAmount !== '') setNumberBetAmount(''); 
   };
 
   const handlePlaceBet = () => {
+    if (!isLoggedIn) {
+      toast({
+        title: "Login Required",
+        description: "Please log in or sign up to place bets.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const amountColorNum = parseInt(colorBetAmount, 10);
     const amountNumberNum = parseInt(numberBetAmount, 10);
 
@@ -72,14 +83,12 @@ export function BettingArea({ onBetPlaced, disabled }: BettingAreaProps) {
       return;
     }
     
-    // Warn if one part is selected but amount is invalid, but other part is fine
     if (isColorBetAttempted && !isColorBetValid && isNumberBetValid) {
          toast({ title: "Color Bet Invalid", description: `Color bet amount is invalid. Only Number bet will be placed.`, variant: "default" });
     }
     if (isNumberBetAttempted && !isNumberBetValid && isColorBetValid) {
          toast({ title: "Number Bet Invalid", description: `Number bet amount is invalid. Only Color bet will be placed.`, variant: "default" });
     }
-
 
     const submission: BetSubmission = {};
     if (isColorBetValid && selectedColor) {
@@ -99,17 +108,11 @@ export function BettingArea({ onBetPlaced, disabled }: BettingAreaProps) {
     }
 
     onBetPlaced(submission);
-    
-    // Reset selections and amounts after attempting to place bet
-    // setSelectedColor(null);
-    // setSelectedNumber(null);
-    // setColorBetAmount('');
-    // setNumberBetAmount('');
   };
   
   const quickBetAmounts = [10, 50, 100, 500];
 
-  const canConfirmBet = !disabled && (
+  const canConfirmBet = !disabled && isLoggedIn && (
     (selectedColor && parseInt(colorBetAmount, 10) >= MIN_BET_AMOUNT) ||
     (selectedNumber !== null && parseInt(numberBetAmount, 10) >= MIN_BET_AMOUNT)
   );
@@ -117,15 +120,23 @@ export function BettingArea({ onBetPlaced, disabled }: BettingAreaProps) {
   return (
     <Card className="w-full shadow-2xl bg-card/80 backdrop-blur-sm">
       <CardHeader>
-        {/* <CardTitle className="text-2xl font-headline text-primary flex items-center">
-          <Zap className="mr-2 h-7 w-7" /> Place Your Bets
-        </CardTitle> */}
         <CardDescription className="pt-2 text-center text-base">Select a color and/or a number. Enter amounts for each.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Color Betting Section */}
+        {!isLoggedIn && !disabled && (
+          <div className="p-4 border border-destructive/50 rounded-lg bg-destructive/10 text-center">
+            <UserX className="mx-auto h-8 w-8 text-destructive mb-2" />
+            <p className="text-destructive font-semibold mb-2">You are playing as a guest.</p>
+            <p className="text-sm text-muted-foreground mb-3">Your balance and bets won&apos;t be saved.</p>
+            <Link href="/login">
+              <Button variant="outline" className="border-primary text-primary hover:bg-primary/10">
+                Login or Sign Up to Save Progress
+              </Button>
+            </Link>
+          </div>
+        )}
+
         <div className="p-4 border rounded-lg bg-background/30">
-          {/* <Label className="text-lg font-medium text-foreground/80 mb-3 block">1. Choose Color (Optional)</Label> */}
           <div className="grid grid-cols-3 gap-3 md:gap-4 mb-4">
             {(['RED', 'GREEN', 'VIOLET'] as ColorOption[]).map((color) => (
               <ColorButton
@@ -166,9 +177,7 @@ export function BettingArea({ onBetPlaced, disabled }: BettingAreaProps) {
           )}
         </div>
 
-        {/* Number Betting Section */}
         <div className="p-4 border rounded-lg bg-background/30">
-          {/* <Label className="text-lg font-medium text-foreground/80 mb-3 block">2. Choose Number (Optional)</Label> */}
           <div className="grid grid-cols-5 gap-2 md:gap-3 mb-4">
             {([0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as NumberOption[]).map((num) => (
               <NumberButton

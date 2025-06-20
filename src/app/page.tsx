@@ -14,23 +14,29 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { AlertCircle, Info, Gift } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Dummy data and simulation logic
 let currentRoundId = Date.now();
-const SIGNUP_BONUS = 50;
-let userBalance = 1000 + SIGNUP_BONUS; // Simulating user balance with signup bonus
 const initialBets: BetType[] = [];
 
 // Placeholder sound data URIs (silent WAV)
 const SILENT_SOUND_PLACEHOLDER = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAVAAAAHYAAABACAA';
 
+const GUEST_USER_ID = "guest_user";
+const GUEST_INITIAL_BALANCE = 200; // Give guests some play money
 
 export default function HomePage() {
+  const { currentUser, updateBalance: updateAuthBalance, loading: authLoading } = useAuth();
   const [currentResult, setCurrentResult] = useState<GameResult | null>(null);
   const [resultHistory, setResultHistory] = useState<GameResult[]>([]);
   const [isBettingPhase, setIsBettingPhase] = useState(true);
   const [activeBets, setActiveBets] = useState<BetType[]>(initialBets);
-  const [currentBalance, setCurrentBalance] = useState(userBalance);
+  
+  // Balance state is now primarily managed by AuthContext for logged-in users
+  // Local state for guest or as a reflection of auth context
+  const [currentDisplayedBalance, setCurrentDisplayedBalance] = useState<number>(GUEST_INITIAL_BALANCE);
+  
   const [round, setRound] = useState<GameRound>({
     id: currentRoundId.toString(),
     startTime: Date.now(),
@@ -38,39 +44,35 @@ export default function HomePage() {
     status: 'betting'
   });
   const { toast } = useToast();
-  const [bonusNotified, setBonusNotified] = useState(false);
+  // const [bonusNotified, setBonusNotified] = useState(false); // Signup bonus handled by AuthContext now
 
   const betPlacedSoundRef = useRef<HTMLAudioElement | null>(null);
   const winSoundRef = useRef<HTMLAudioElement | null>(null);
   const loseSoundRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    // Initialize audio elements client-side
+    if (!authLoading) {
+      if (currentUser) {
+        setCurrentDisplayedBalance(currentUser.walletBalance);
+      } else {
+        setCurrentDisplayedBalance(GUEST_INITIAL_BALANCE);
+      }
+    }
+  }, [currentUser, authLoading]);
+
+
+  useEffect(() => {
     if (typeof window !== 'undefined') {
         betPlacedSoundRef.current = new Audio(SILENT_SOUND_PLACEHOLDER /* Replace with '/sounds/bet-placed.mp3' */);
         winSoundRef.current = new Audio(SILENT_SOUND_PLACEHOLDER /* Replace with '/sounds/win.mp3' */);
         loseSoundRef.current = new Audio(SILENT_SOUND_PLACEHOLDER /* Replace with '/sounds/lose.mp3' */);
         
-        // Preload audio
         betPlacedSoundRef.current.preload = "auto";
         winSoundRef.current.preload = "auto";
         loseSoundRef.current.preload = "auto";
     }
-
-    // Notify about signup bonus once
-    if (!bonusNotified) {
-      toast({
-        title: (
-          <div className="flex items-center">
-            <Gift className="mr-2 h-5 w-5 text-primary" /> Welcome Bonus!
-          </div>
-        ),
-        description: `You've received a signup bonus of ₹${SIGNUP_BONUS}! Happy playing!`,
-        duration: 7000,
-      });
-      setBonusNotified(true);
-    }
-  }, [bonusNotified, toast]);
+    // Signup bonus notification is now handled by AuthContext on signup.
+  }, []);
 
   const playLocalSound = (soundRef: React.RefObject<HTMLAudioElement>) => {
     soundRef.current?.play().catch(error => console.warn("Audio play failed:", error));
@@ -124,10 +126,13 @@ export default function HomePage() {
         if (bet.selectedColor !== null) { 
           if (bet.selectedColor === newResult.winningColor) {
             isWin = true; 
+            // Note: If both number and color bets were placed as one item, this logic might need to be smarter
+            // For now, assuming color and number parts of a "combined" bet are evaluated independently for their respective portions
+            // Or if they are truly separate bet objects, this is fine.
+            // The current BetSubmission creates separate bet objects, so this should be fine.
             payoutAmount += bet.amount * PAYOUT_MULTIPLIERS[bet.selectedColor as Exclude<ColorOption, null>];
           }
         }
-
 
         if (isWin) {
           totalWinningsThisRound += payoutAmount;
@@ -139,9 +144,12 @@ export default function HomePage() {
       });
       
       setActiveBets(updatedBets); 
-      const newBalance = currentBalance + totalWinningsThisRound;
-      setCurrentBalance(newBalance);
-      userBalance = newBalance; 
+      
+      const newBalance = currentDisplayedBalance + totalWinningsThisRound;
+      if (currentUser) {
+        updateAuthBalance(newBalance); // Update context and localStorage
+      }
+      setCurrentDisplayedBalance(newBalance); // Update local display
       
       if (anyBetWon) {
         toast({ 
@@ -169,32 +177,39 @@ export default function HomePage() {
           endTime: Date.now() + GAME_ROUND_DURATION_SECONDS * 1000,
           status: 'betting'
         });
+        // Clear processed bets for the *just ended* round
         setActiveBets(prev => prev.filter(bet => !bet.isProcessed || bet.roundId !== newResult.roundId)); 
         setIsBettingPhase(true);
       }, RESULT_PROCESSING_DURATION_SECONDS * 1000);
 
     }, 2000); 
-  }, [round.id, activeBets, currentBalance, toast]);
+  }, [round.id, activeBets, currentDisplayedBalance, toast, currentUser, updateAuthBalance]);
 
   const handleBetPlaced = (submission: BetSubmission) => {
+    if (!currentUser && (!submission.colorBet && !submission.numberBet)) {
+      toast({ title: "Please Login", description: "You need to login or sign up to place bets.", variant: "destructive" });
+      return;
+    }
+
     let totalAmountToBet = 0;
     if (submission.colorBet) totalAmountToBet += submission.colorBet.amount;
     if (submission.numberBet) totalAmountToBet += submission.numberBet.amount;
 
-    if (currentBalance < totalAmountToBet) {
+    if (currentDisplayedBalance < totalAmountToBet) {
       toast({ title: "Insufficient Balance", description: "You don't have enough funds to place these bets.", variant: "destructive" });
       return;
     }
     
     const newActiveBets: BetType[] = [];
     let betDescriptions: string[] = [];
+    const userIdToUse = currentUser ? currentUser.id : GUEST_USER_ID;
 
     if (submission.colorBet) {
       const colorBetAmount = submission.colorBet.amount;
       if (colorBetAmount >= MIN_BET_AMOUNT) {
         newActiveBets.push({
           id: `bet-color-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
-          userId: 'currentUser',
+          userId: userIdToUse,
           roundId: round.id,
           selectedColor: submission.colorBet.color,
           selectedNumber: null,
@@ -210,7 +225,7 @@ export default function HomePage() {
       if (numberBetAmount >= MIN_BET_AMOUNT) {
         newActiveBets.push({
           id: `bet-number-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
-          userId: 'currentUser',
+          userId: userIdToUse,
           roundId: round.id,
           selectedColor: null,
           selectedNumber: submission.numberBet.number,
@@ -227,19 +242,18 @@ export default function HomePage() {
     }
 
     setActiveBets(prev => [...prev, ...newActiveBets]);
-    const newBal = currentBalance - totalAmountToBet;
-    setCurrentBalance(newBal);
-    userBalance = newBal;
+    const newBal = currentDisplayedBalance - totalAmountToBet;
+    
+    if (currentUser) {
+      updateAuthBalance(newBal); // Update context and localStorage
+    }
+    setCurrentDisplayedBalance(newBal); // Update local display
+
 
     toast({ title: "Bets Placed!", description: betDescriptions.join(' & ') + '.' });
     playLocalSound(betPlacedSoundRef);
   };
   
-  useEffect(() => {
-    // This effect is primarily for the AppHeader balance update, which is a temporary solution.
-  }, [currentBalance]);
-
-
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
       <AppHeader />
@@ -247,7 +261,11 @@ export default function HomePage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 items-start">
           <div className="lg:col-span-2 space-y-6 lg:space-y-8">
             <GameCountdown onTimerEnd={processRoundEnd} isProcessing={!isBettingPhase} roundId={round.id} />
-            <BettingArea onBetPlaced={handleBetPlaced} disabled={!isBettingPhase} />
+            <BettingArea 
+              onBetPlaced={handleBetPlaced} 
+              disabled={!isBettingPhase || (authLoading)} 
+              isLoggedIn={!!currentUser}
+            />
           </div>
           <div className="lg:col-span-1 space-y-6 lg:space-y-8">
             <ResultsDisplay currentResult={currentResult} history={resultHistory} />
@@ -347,6 +365,7 @@ export default function HomePage() {
                                <p>Minimum bet amount for each bet type (color or number): ₹{MIN_BET_AMOUNT}.</p>
                                <p>Bets are final once placed.</p>
                                <p>Play responsibly. This is a game of chance.</p>
+                               <p>You must be logged in to track your balance and winnings properly. Bets made as a guest are for fun only and won't be saved.</p>
                             </AccordionContent>
                         </AccordionItem>
                     </Accordion>
@@ -359,5 +378,3 @@ export default function HomePage() {
     </div>
   );
 }
-
-    
