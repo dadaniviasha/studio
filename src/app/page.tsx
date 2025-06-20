@@ -67,12 +67,13 @@ export default function HomePage() {
 
     setTimeout(() => {
       const winningNumber = Math.floor(Math.random() * 10) as NumberOption;
-      const colorInfo = NUMBER_COLORS[winningNumber];
+      const availableColors: ColorOption[] = ['RED', 'GREEN', 'VIOLET'];
+      const winningColor = availableColors[Math.floor(Math.random() * availableColors.length)];
       
       const newResult: GameResult = {
         roundId: round.id,
         winningNumber,
-        winningColor: colorInfo.primary,
+        winningColor, // Independent winning color
         timestamp: Date.now(),
         finalizedBy: 'random', 
       };
@@ -93,18 +94,20 @@ export default function HomePage() {
         
         if (bet.selectedNumber !== null) { 
           if (bet.selectedNumber === newResult.winningNumber) {
-            isWin = true;
-            payoutAmount = bet.amount * PAYOUT_MULTIPLIERS.NUMBER;
+            isWin = true; // Win on number bet
+            payoutAmount += bet.amount * PAYOUT_MULTIPLIERS.NUMBER;
           }
         } 
-        else if (bet.selectedColor !== null) { 
-          // Winning on primary color OR winning on VIOLET if the number has VIOLET
-          if (bet.selectedColor === newResult.winningColor || 
-              (bet.selectedColor === 'VIOLET' && NUMBER_COLORS[newResult.winningNumber].violet)) {
-            isWin = true;
-            payoutAmount = bet.amount * PAYOUT_MULTIPLIERS[bet.selectedColor as Exclude<ColorOption, null>];
+        
+        if (bet.selectedColor !== null) { 
+          if (bet.selectedColor === newResult.winningColor) {
+             // If this bet was part of a combined bet and number already won, this adds to it
+            // If it's a color-only bet, this is the primary win condition
+            isWin = true; // Win on color bet
+            payoutAmount += bet.amount * PAYOUT_MULTIPLIERS[bet.selectedColor as Exclude<ColorOption, null>];
           }
         }
+
 
         if (isWin) {
           totalWinningsThisRound += payoutAmount;
@@ -125,14 +128,14 @@ export default function HomePage() {
             title: "🎉 Congratulations! You Won! 🎉", 
             description: `You won a total of ₹${totalWinningsThisRound.toFixed(2)} this round.`,
             variant: "default", 
-            duration: 5000, // Make it a bit longer
+            duration: 5000,
         });
         playLocalSound(winSoundRef);
       } else if (betsPlacedThisRound.length > 0) { 
         toast({ 
             title: "💔 Round Over - No Wins 💔", 
             description: "No wins this time. Better luck next round!", 
-            variant: "default", // Could be "destructive" but might be too alarming
+            variant: "default",
             duration: 5000,
         });
         playLocalSound(loseSoundRef);
@@ -253,30 +256,31 @@ export default function HomePage() {
                                         <li>Red / Green: Win x{PAYOUT_MULTIPLIERS.RED} of bet amount.</li>
                                         <li>Violet: Win x{PAYOUT_MULTIPLIERS.VIOLET} of bet amount.</li>
                                     </ul>
-                                    <p className="text-xs mt-1">Wins if your chosen color is the primary color of the winning number, OR if you chose Violet and the winning number includes Violet (e.g., numbers 0 or 5).</p>
+                                    <p className="text-xs mt-1">Wins if your chosen color matches the round's designated winning color. The winning color is determined independently of the winning number's appearance.</p>
                                 </div>
                                 <div>
                                     <strong className="text-foreground">Number Bet:</strong>
                                     <p>Win x{PAYOUT_MULTIPLIERS.NUMBER} of bet amount.</p>
                                     <p className="text-xs mt-1">Wins if your chosen number matches the winning number.</p>
                                 </div>
-                                 <p className="italic">Note: Bets on color and number are independent. You can win one, both, or neither.</p>
+                                 <p className="italic">Note: Bets on color and number are independent. You can win on your color bet, your number bet, both, or neither, based on the round's outcome.</p>
                             </AccordionContent>
                         </AccordionItem>
                         <AccordionItem value="item-3">
-                            <AccordionTrigger>Numbers & Their Colors</AccordionTrigger>
+                            <AccordionTrigger>Numbers & Their Visual Appearance</AccordionTrigger>
                             <AccordionContent className="text-muted-foreground">
+                                <p className="text-sm mb-2">The colors below are for visual styling of the number balls only and do not determine the round's winning color for betting purposes.</p>
                                 <ul className="list-disc list-inside space-y-1">
-                                    <li><span className="text-red-500 font-semibold">0: Red</span> + <span className="text-purple-500 font-semibold">Violet</span></li>
-                                    <li><span className="text-green-500 font-semibold">1: Green</span></li>
-                                    <li><span className="text-red-500 font-semibold">2: Red</span></li>
-                                    <li><span className="text-green-500 font-semibold">3: Green</span></li>
-                                    <li><span className="text-red-500 font-semibold">4: Red</span></li>
-                                    <li><span className="text-green-500 font-semibold">5: Green</span> + <span className="text-purple-500 font-semibold">Violet</span></li>
-                                    <li><span className="text-red-500 font-semibold">6: Red</span></li>
-                                    <li><span className="text-green-500 font-semibold">7: Green</span></li>
-                                    <li><span className="text-red-500 font-semibold">8: Red</span></li>
-                                    <li><span className="text-green-500 font-semibold">9: Green</span></li>
+                                    <li><span className="text-red-500 font-semibold">0: Styled Red</span> + <span className="text-purple-500 font-semibold">Violet</span></li>
+                                    <li><span className="text-green-500 font-semibold">1: Styled Green</span></li>
+                                    <li><span className="text-red-500 font-semibold">2: Styled Red</span></li>
+                                    <li><span className="text-green-500 font-semibold">3: Styled Green</span></li>
+                                    <li><span className="text-red-500 font-semibold">4: Styled Red</span></li>
+                                    <li><span className="text-green-500 font-semibold">5: Styled Green</span> + <span className="text-purple-500 font-semibold">Violet</span></li>
+                                    <li><span className="text-red-500 font-semibold">6: Styled Red</span></li>
+                                    <li><span className="text-green-500 font-semibold">7: Styled Green</span></li>
+                                    <li><span className="text-red-500 font-semibold">8: Styled Red</span></li>
+                                    <li><span className="text-green-500 font-semibold">9: Styled Green</span></li>
                                 </ul>
                             </AccordionContent>
                         </AccordionItem>
@@ -285,7 +289,7 @@ export default function HomePage() {
                                 <AlertCircle className="mr-2 h-5 w-5 text-destructive/80" /> Important Notes
                             </AccordionTrigger>
                             <AccordionContent className="space-y-2 text-muted-foreground">
-                               <p>Minimum bet amount for each bet (color or number): ₹{MIN_BET_AMOUNT}.</p>
+                               <p>Minimum bet amount for each bet type (color or number): ₹{MIN_BET_AMOUNT}.</p>
                                <p>Bets are final once placed.</p>
                                <p>Play responsibly. This is a game of chance.</p>
                             </AccordionContent>

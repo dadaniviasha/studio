@@ -10,77 +10,51 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Wand2, Settings, Shuffle } from 'lucide-react';
 import type { ColorOption, NumberOption, GameResult } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
-import { NUMBER_COLORS } from '@/lib/constants';
+// NUMBER_COLORS is not used for logic here anymore but could be for display hints if needed.
 
 interface ResultControllerProps {
-  onSetResult: (result: Partial<GameResult>) => void; // Partial because admin might only set number, color derived.
+  onSetResult: (result: Partial<GameResult>) => void;
 }
 
 export function ResultController({ onSetResult }: ResultControllerProps) {
   const [controlMode, setControlMode] = useState<'manual' | 'random'>('manual');
-  const [manualColor, setManualColor] = useState<ColorOption | ''>(''); // This is for admin hinting, actual result color is derived by number
+  const [manualColor, setManualColor] = useState<ColorOption | ''>('');
   const [manualNumber, setManualNumber] = useState<NumberOption | ''>('');
   const { toast } = useToast();
 
   const handleSetResult = () => {
+    let resultToSet: Partial<GameResult>;
+
     if (controlMode === 'random') {
       const winningNumber = Math.floor(Math.random() * 10) as NumberOption;
-      const colorInfo = NUMBER_COLORS[winningNumber];
-      const resultToSet: Partial<GameResult> = {
+      const availableColors: ColorOption[] = ['RED', 'GREEN', 'VIOLET'];
+      const winningColor = availableColors[Math.floor(Math.random() * availableColors.length)];
+      resultToSet = {
         winningNumber,
-        winningColor: colorInfo.primary,
+        winningColor,
         finalizedBy: 'random',
       };
       onSetResult(resultToSet);
-      toast({ title: "Random Result Triggered", description: `Next result will be random.` });
+      toast({ title: "Random Result Triggered", description: `Next result will be Number: ${resultToSet.winningNumber}, Color: ${resultToSet.winningColor}.` });
       return;
     }
 
     // Manual mode
-    if (manualNumber === '' && manualColor === '') { // Admin must select at least one input if in manual mode
-        toast({ title: "Invalid Selection", description: "Please select a number or suggest a color.", variant: "destructive" });
+    if (manualNumber === '' || manualColor === '') {
+        toast({ title: "Invalid Selection", description: "In manual mode, please select both a winning number and a winning color.", variant: "destructive" });
         return;
     }
     
-    let resultToSet: Partial<GameResult>;
-
-    if (manualNumber !== '') { // Number selection takes precedence
-        const num = manualNumber as NumberOption;
-        const colorInfo = NUMBER_COLORS[num];
-        resultToSet = {
-            winningNumber: num,
-            winningColor: colorInfo.primary,
-            finalizedBy: 'admin',
-        };
-    } else if (manualColor !== '') { // If only color is suggested, pick a random number of that color
-        const possibleNumbers = (Object.keys(NUMBER_COLORS) as unknown as NumberOption[])
-            .map(nStr => parseInt(nStr) as NumberOption) // Ensure number type
-            .filter(n => {
-                const info = NUMBER_COLORS[n];
-                return info.primary === manualColor || (manualColor === 'VIOLET' && info.violet);
-            });
-        
-        if (possibleNumbers.length === 0) {
-            toast({ title: "No Matching Number", description: `No number matches the selected color criteria: ${manualColor}. Try a different color or set a number.`, variant: "destructive" });
-            return;
-        }
-        const winningNumber = possibleNumbers[Math.floor(Math.random() * possibleNumbers.length)];
-        const colorInfo = NUMBER_COLORS[winningNumber];
-        resultToSet = {
-            winningNumber,
-            winningColor: colorInfo.primary,
-            finalizedBy: 'admin',
-        };
-    } else {
-         // This state should not be reached due to the initial check, but as a fallback:
-         toast({ title: "Error", description: "Invalid state for setting result. Please select a number or a color.", variant: "destructive" });
-         return;
-    }
+    resultToSet = {
+        winningNumber: manualNumber as NumberOption,
+        winningColor: manualColor as ColorOption,
+        finalizedBy: 'admin',
+    };
 
     onSetResult(resultToSet);
-    toast({ title: "Manual Result Set", description: `Next result configured to Number: ${resultToSet.winningNumber}, Primary Color: ${resultToSet.winningColor}.` });
-    setManualColor('');
-    setManualNumber('');
+    toast({ title: "Manual Result Set", description: `Next result configured to Number: ${resultToSet.winningNumber}, Color: ${resultToSet.winningColor}.` });
+    // setManualColor(''); // Optionally reset after setting, or let admin see current manual setting
+    // setManualNumber('');
   };
 
   return (
@@ -110,34 +84,33 @@ export function ResultController({ onSetResult }: ResultControllerProps) {
           <div className="space-y-4 p-4 border rounded-md bg-background/30">
             <h3 className="text-lg font-medium text-foreground/80">Manual Configuration</h3>
             <div>
-              <Label htmlFor="manualNumber">Winning Number (Overrides Color if set)</Label>
+              <Label htmlFor="manualNumber">Winning Number *</Label>
               <Select value={manualNumber === '' ? '' : manualNumber.toString()} onValueChange={(value) => setManualNumber(value === '' ? '' : parseInt(value) as NumberOption)}>
                 <SelectTrigger id="manualNumber" className="w-full h-12 mt-1">
-                  <SelectValue placeholder="Select number (highest priority)" />
+                  <SelectValue placeholder="Select winning number" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  {/* <SelectItem value="">None</SelectItem> // Removed as it's mandatory */}
                   {Array.from({ length: 10 }, (_, i) => i as NumberOption).map(num => (
                     <SelectItem key={num} value={num.toString()}>{num}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-               <p className="text-xs text-muted-foreground mt-1">Setting a number automatically determines its primary color(s).</p>
             </div>
              <div>
-              <Label htmlFor="manualColor">Suggest Winning Color (Used if no number is set)</Label>
+              <Label htmlFor="manualColor">Winning Color *</Label>
               <Select value={manualColor} onValueChange={(value: ColorOption | '') => setManualColor(value)}>
                 <SelectTrigger id="manualColor" className="w-full h-12 mt-1">
-                  <SelectValue placeholder="Select color (if no number is chosen)" />
+                  <SelectValue placeholder="Select winning color" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  {/* <SelectItem value="">None</SelectItem> // Removed as it's mandatory */}
                   <SelectItem value="RED">Red</SelectItem>
                   <SelectItem value="GREEN">Green</SelectItem>
                   <SelectItem value="VIOLET">Violet</SelectItem>
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground mt-1">If a number is set, this color selection is ignored. If only color is set, a random number of this color type will be picked.</p>
+              <p className="text-xs text-muted-foreground mt-1">Both number and color are required for manual mode.</p>
             </div>
           </div>
         )}

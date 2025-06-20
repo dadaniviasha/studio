@@ -15,11 +15,12 @@ interface ResultsDisplayProps {
   history: GameResult[];
 }
 
+// This function determines the visual styling of the number ball
 const getBallColorClasses = (number: number, isLarge: boolean = false): string => {
-  const info = NUMBER_COLORS[number];
+  const info = NUMBER_COLORS[number]; // For visual styling only
   let classes = isLarge ? 'w-16 h-16 md:w-20 md:h-20 text-3xl md:text-4xl' : 'w-8 h-8 text-sm';
   
-  if (info.violet) {
+  if (info.violet) { // Visual: If number includes violet (e.g., 0 or 5)
     if (info.primary === 'RED') {
       classes += ' bg-gradient-to-br from-red-500 to-purple-500 text-white';
     } else { // GREEN
@@ -32,6 +33,26 @@ const getBallColorClasses = (number: number, isLarge: boolean = false): string =
   }
   return classes;
 };
+
+// This function determines the badge color for the winningColor of the round
+const getWinningColorBadgeClass = (winningColor: GameResult['winningColor']): string => {
+    switch (winningColor) {
+        case 'RED': return 'bg-red-500';
+        case 'GREEN': return 'bg-green-500';
+        case 'VIOLET': return 'bg-purple-500';
+        default: return 'bg-gray-500'; // Fallback
+    }
+};
+// This function determines the badge color for the winningColor of the round for history items (outline)
+const getWinningColorHistoryBadgeClass = (winningColor: GameResult['winningColor']): string => {
+    switch (winningColor) {
+        case 'RED': return 'border-red-500 text-red-500';
+        case 'GREEN': return 'border-green-500 text-green-500';
+        case 'VIOLET': return 'border-purple-500 text-purple-500';
+        default: return 'border-gray-500 text-gray-500'; // Fallback
+    }
+};
+
 
 export function ResultsDisplay({ currentResult, history }: ResultsDisplayProps) {
   const [revealedResult, setRevealedResult] = useState<GameResult | null>(null);
@@ -63,25 +84,20 @@ export function ResultsDisplay({ currentResult, history }: ResultsDisplayProps) 
               <div 
                 className={cn(
                   "rounded-full flex items-center justify-center font-bold shadow-lg",
-                  getBallColorClasses(displayResult.winningNumber, true)
+                  getBallColorClasses(displayResult.winningNumber, true) // Visual styling of the number ball
                 )}
               >
                 {displayResult.winningNumber}
               </div>
               <div className="flex space-x-2">
                 <Badge 
-                  className={cn("text-sm px-3 py-1", 
-                    displayResult.winningColor === 'RED' ? 'bg-red-500' :
-                    displayResult.winningColor === 'GREEN' ? 'bg-green-500' :
-                    'bg-purple-500' // This case implies VIOLET was the primary winning color, which NUMBER_COLORS handles
+                  className={cn(
+                    "text-sm px-3 py-1", 
+                    getWinningColorBadgeClass(displayResult.winningColor) // Badge for the actual winning color
                   )}
                 >
                   {displayResult.winningColor}
                 </Badge>
-                {/* Display Violet badge if the winning number inherently includes violet, based on NUMBER_COLORS */}
-                {NUMBER_COLORS[displayResult.winningNumber].violet && displayResult.winningColor !== 'VIOLET' && (
-                   <Badge className="bg-purple-500 text-sm px-3 py-1">VIOLET</Badge>
-                )}
               </div>
             </div>
           </div>
@@ -103,24 +119,20 @@ export function ResultsDisplay({ currentResult, history }: ResultsDisplayProps) 
                        <div 
                         className={cn(
                           "rounded-full flex items-center justify-center font-semibold shadow-md",
-                          getBallColorClasses(res.winningNumber)
+                          getBallColorClasses(res.winningNumber) // Visual styling of number ball in history
                         )}
                       >
                         {res.winningNumber}
                       </div>
                       <Badge 
                         variant="outline"
-                        className={cn("text-xs",
-                          res.winningColor === 'RED' ? 'border-red-500 text-red-500' :
-                          res.winningColor === 'GREEN' ? 'border-green-500 text-green-500' :
-                          'border-purple-500 text-purple-500'
+                        className={cn(
+                            "text-xs",
+                           getWinningColorHistoryBadgeClass(res.winningColor) // Badge for actual winning color in history
                         )}
                       >
                         {res.winningColor}
                       </Badge>
-                       {NUMBER_COLORS[res.winningNumber].violet && res.winningColor !== 'VIOLET' && (
-                        <Badge variant="outline" className="border-purple-500 text-purple-500 text-xs">VIOLET</Badge>
-                      )}
                     </div>
                   </div>
                 ))}

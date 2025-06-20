@@ -16,7 +16,7 @@ export interface Bet {
 
 export interface GameResult {
   roundId: string;
-  winningColor: ColorOption; // This is the primary color of the winning number
+  winningColor: ColorOption; // The independently determined winning color for the round
   winningNumber: NumberOption;
   timestamp: number;
   finalizedBy: "admin" | "random";

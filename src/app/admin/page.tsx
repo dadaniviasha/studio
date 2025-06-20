@@ -13,23 +13,25 @@ export default function AdminPage() {
   
   // This would typically interact with a backend service or global state
   const handleSetNextResult = (result: Partial<GameResult>) => {
+    // Ensure both winningNumber and winningColor are present for a complete result
+    if (result.winningNumber === undefined || result.winningColor === undefined) {
+      console.error("Admin attempted to set an incomplete result:", result);
+      toast({
+        title: "Error: Incomplete Result Data",
+        description: "Both winning number and color must be specified.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     console.log("Admin set next result:", result);
     // In a real app, this would update the game state for the next round
     // For now, just show a toast
     toast({
       title: "Result Instruction Sent",
-      description: `Instruction to set Number: ${result.winningNumber}, Color: ${result.winningColor} for the next round has been processed.`,
+      description: `Instruction to set Number: ${result.winningNumber}, Color: ${result.winningColor} for the next round has been processed. Finalized by: ${result.finalizedBy}`,
     });
   };
-
-  // const handleProcessWithdrawal = (requestId: string, status: 'approved' | 'rejected') => {
-  //   console.log(`Processing withdrawal ${requestId} with status ${status}`);
-  //   // Logic to update withdrawal request status
-  //   toast({
-  //     title: "Withdrawal Processed",
-  //     description: `Request ${requestId} has been ${status}.`,
-  //   });
-  // };
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
@@ -43,17 +45,12 @@ export default function AdminPage() {
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-start">
           <ResultController onSetResult={handleSetNextResult} />
-          <PendingWithdrawals /* onProcessRequest={handleProcessWithdrawal} */ />
+          <PendingWithdrawals />
         </div>
         
-        {/* Placeholder for other admin functionalities like user management, detailed stats etc. */}
         <div className="mt-8 p-6 border rounded-lg bg-card/50 backdrop-blur-sm">
             <h2 className="text-2xl font-headline text-primary mb-4">More Admin Tools</h2>
             <p className="text-muted-foreground">Additional administrative features (e.g., user management, site statistics, bet history overview) would be available here.</p>
-            {/* Example:
-            <Button variant="outline" className="mt-4">View User List</Button>
-            <Button variant="outline" className="mt-4 ml-2">Site Statistics</Button>
-            */}
         </div>
 
       </main>
