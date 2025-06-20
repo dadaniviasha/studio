@@ -1,12 +1,11 @@
 "use client";
 
 import { useState } from 'react';
-import { DollarSign, Zap } from 'lucide-react';
+import { DollarSign, Zap, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import type { ColorOption, NumberOption } from '@/lib/types';
 import { MIN_BET_AMOUNT } from '@/lib/constants';
@@ -14,14 +13,11 @@ import { ColorButton } from './ColorButton';
 import { NumberButton } from './NumberButton';
 
 interface BettingAreaProps {
-  onBetPlaced: (type: 'color' | 'number', selection: ColorOption | NumberOption, amount: number) => void;
+  onBetPlaced: (betDetails: { color: ColorOption | null, number: NumberOption | null, amount: number }) => void;
   disabled?: boolean; // If game is not in betting phase
 }
 
-type ActiveTab = "color" | "number";
-
 export function BettingArea({ onBetPlaced, disabled }: BettingAreaProps) {
-  const [activeTab, setActiveTab] = useState<ActiveTab>("color");
   const [selectedColor, setSelectedColor] = useState<ColorOption | null>(null);
   const [selectedNumber, setSelectedNumber] = useState<NumberOption | null>(null);
   const [betAmount, setBetAmount] = useState<string>(MIN_BET_AMOUNT.toString());
@@ -38,6 +34,14 @@ export function BettingArea({ onBetPlaced, disabled }: BettingAreaProps) {
     setBetAmount(amount.toString());
   };
 
+  const toggleColorSelection = (color: ColorOption) => {
+    setSelectedColor(prev => prev === color ? null : color);
+  };
+
+  const toggleNumberSelection = (number: NumberOption) => {
+    setSelectedNumber(prev => prev === number ? null : number);
+  };
+
   const handlePlaceBet = () => {
     const amount = parseInt(betAmount, 10);
     if (isNaN(amount) || amount < MIN_BET_AMOUNT) {
@@ -49,20 +53,28 @@ export function BettingArea({ onBetPlaced, disabled }: BettingAreaProps) {
       return;
     }
 
-    if (activeTab === "color" && selectedColor) {
-      onBetPlaced("color", selectedColor, amount);
-      toast({ title: "Bet Placed!", description: `₹${amount} on ${selectedColor}.` });
-    } else if (activeTab === "number" && selectedNumber !== null) {
-      onBetPlaced("number", selectedNumber, amount);
-      toast({ title: "Bet Placed!", description: `₹${amount} on Number ${selectedNumber}.` });
-    } else {
+    if (!selectedColor && selectedNumber === null) {
       toast({
         title: "No Selection",
-        description: "Please select a color or number to bet on.",
+        description: "Please select a color and/or a number to bet on.",
         variant: "destructive",
       });
+      return;
     }
-    // Optionally reset selection after bet
+    
+    let description = "";
+    if (selectedColor && selectedNumber !== null) {
+      description = `₹${amount} on Number ${selectedNumber} AND ${selectedColor}.`;
+    } else if (selectedNumber !== null) {
+      description = `₹${amount} on Number ${selectedNumber}.`;
+    } else if (selectedColor) {
+      description = `₹${amount} on ${selectedColor}.`;
+    }
+
+    onBetPlaced({ color: selectedColor, number: selectedNumber, amount });
+    toast({ title: "Bet Placed!", description });
+    
+    // Reset selections after bet
     // setSelectedColor(null);
     // setSelectedNumber(null);
   };
@@ -75,41 +87,40 @@ export function BettingArea({ onBetPlaced, disabled }: BettingAreaProps) {
         <CardTitle className="text-2xl font-headline text-primary flex items-center">
           <Zap className="mr-2 h-7 w-7" /> Place Your Bet
         </CardTitle>
-        <CardDescription>Select a color or number, enter your amount, and win big!</CardDescription>
+        <CardDescription>Select a color, a number, or both. Then set your amount.</CardDescription>
       </CardHeader>
       <CardContent>
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as ActiveTab)} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="color">Colors</TabsTrigger>
-            <TabsTrigger value="number">Numbers</TabsTrigger>
-          </TabsList>
-          <TabsContent value="color" className="mt-6">
+        <div className="space-y-6">
+          <div>
+            <Label className="text-lg font-medium text-foreground/80 mb-2 block">Choose Color (Optional)</Label>
             <div className="grid grid-cols-3 gap-3 md:gap-4">
               {(['RED', 'GREEN', 'VIOLET'] as ColorOption[]).map((color) => (
                 <ColorButton
                   key={color}
                   color={color}
-                  onClick={() => setSelectedColor(color)}
+                  onClick={() => toggleColorSelection(color)}
                   isSelected={selectedColor === color}
                   disabled={disabled}
                 />
               ))}
             </div>
-          </TabsContent>
-          <TabsContent value="number" className="mt-6">
+          </div>
+
+          <div>
+            <Label className="text-lg font-medium text-foreground/80 mb-2 block">Choose Number (Optional)</Label>
             <div className="grid grid-cols-5 gap-2 md:gap-3">
               {([0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as NumberOption[]).map((num) => (
                 <NumberButton
                   key={num}
                   number={num}
-                  onClick={() => setSelectedNumber(num)}
+                  onClick={() => toggleNumberSelection(num)}
                   isSelected={selectedNumber === num}
                   disabled={disabled}
                 />
               ))}
             </div>
-          </TabsContent>
-        </Tabs>
+          </div>
+        </div>
 
         <div className="mt-8 space-y-4">
           <div>
@@ -118,7 +129,7 @@ export function BettingArea({ onBetPlaced, disabled }: BettingAreaProps) {
               <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
               <Input
                 id="betAmount"
-                type="text" // Use text to allow custom validation, then parse
+                type="text" 
                 value={betAmount}
                 onChange={handleBetAmountChange}
                 placeholder={`Min ₹${MIN_BET_AMOUNT}`}
@@ -140,7 +151,7 @@ export function BettingArea({ onBetPlaced, disabled }: BettingAreaProps) {
       <CardFooter>
         <Button
           onClick={handlePlaceBet}
-          disabled={disabled || (!selectedColor && activeTab === 'color') || (selectedNumber === null && activeTab === 'number') || parseInt(betAmount) < MIN_BET_AMOUNT}
+          disabled={disabled || (!selectedColor && selectedNumber === null) || parseInt(betAmount) < MIN_BET_AMOUNT}
           className="w-full h-14 text-xl font-bold bg-accent hover:bg-accent/90 text-accent-foreground transition-transform transform hover:scale-105"
         >
           <Zap className="mr-2 h-6 w-6" /> Confirm Bet
