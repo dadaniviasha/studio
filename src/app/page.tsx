@@ -24,14 +24,6 @@ const initialBets: BetType[] = [];
 const SILENT_SOUND_PLACEHOLDER = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAVAAAAHYAAABACAA';
 
 
-const playSound = (soundSrc: string) => {
-  if (typeof window !== 'undefined') {
-    const audio = new Audio(soundSrc);
-    audio.play().catch(error => console.warn("Audio play failed:", error)); // Warn instead of error for placeholders
-  }
-};
-
-
 export default function HomePage() {
   const [currentResult, setCurrentResult] = useState<GameResult | null>(null);
   const [resultHistory, setResultHistory] = useState<GameResult[]>([]);
@@ -80,8 +72,7 @@ export default function HomePage() {
       const newResult: GameResult = {
         roundId: round.id,
         winningNumber,
-        winningColor: colorInfo.primary, 
-        winningVioletColor: colorInfo.violet, 
+        winningColor: colorInfo.primary,
         timestamp: Date.now(),
         finalizedBy: 'random', 
       };
@@ -94,22 +85,22 @@ export default function HomePage() {
       const betsPlacedThisRound = activeBets.filter(bet => bet.roundId === round.id && !bet.isProcessed);
 
       const updatedBets = activeBets.map(bet => {
-        if (bet.roundId !== round.id || bet.isProcessed) return bet; // Process only current round's unprocessed bets
+        if (bet.roundId !== round.id || bet.isProcessed) return bet; 
 
         let isWin = false;
         let payoutAmount = 0;
         const processedBet = { ...bet, isWin: false, payout: 0, isProcessed: true };
         
-        // Number-only bet processing
         if (bet.selectedNumber !== null) { 
           if (bet.selectedNumber === newResult.winningNumber) {
             isWin = true;
             payoutAmount = bet.amount * PAYOUT_MULTIPLIERS.NUMBER;
           }
         } 
-        // Color-only bet processing
         else if (bet.selectedColor !== null) { 
-          if (newResult.winningColor === bet.selectedColor || (bet.selectedColor === 'VIOLET' && newResult.winningVioletColor)) {
+          // Winning on primary color OR winning on VIOLET if the number has VIOLET
+          if (bet.selectedColor === newResult.winningColor || 
+              (bet.selectedColor === 'VIOLET' && NUMBER_COLORS[newResult.winningNumber].violet)) {
             isWin = true;
             payoutAmount = bet.amount * PAYOUT_MULTIPLIERS[bet.selectedColor as Exclude<ColorOption, null>];
           }
@@ -131,16 +122,18 @@ export default function HomePage() {
       
       if (anyBetWon) {
         toast({ 
-            title: "🎉 You Won! 🎉", 
-            description: `Congratulations! You won a total of ₹${totalWinningsThisRound.toFixed(2)} this round.`,
-            variant: "default", // Using default, could be styled more uniquely
+            title: "🎉 Congratulations! You Won! 🎉", 
+            description: `You won a total of ₹${totalWinningsThisRound.toFixed(2)} this round.`,
+            variant: "default", 
+            duration: 5000, // Make it a bit longer
         });
         playLocalSound(winSoundRef);
-      } else if (betsPlacedThisRound.length > 0) { // Only show "lose" if bets were actually placed
+      } else if (betsPlacedThisRound.length > 0) { 
         toast({ 
-            title: "Round Over", 
+            title: "💔 Round Over - No Wins 💔", 
             description: "No wins this time. Better luck next round!", 
-            variant: "default" // Using default, could be styled more uniquely
+            variant: "default", // Could be "destructive" but might be too alarming
+            duration: 5000,
         });
         playLocalSound(loseSoundRef);
       }
@@ -153,7 +146,6 @@ export default function HomePage() {
           endTime: Date.now() + GAME_ROUND_DURATION_SECONDS * 1000,
           status: 'betting'
         });
-        // Clear only processed bets related to the completed round or all active bets if desired
         setActiveBets(prev => prev.filter(bet => !bet.isProcessed || bet.roundId !== newResult.roundId)); 
         setIsBettingPhase(true);
       }, RESULT_PROCESSING_DURATION_SECONDS * 1000);
@@ -207,7 +199,6 @@ export default function HomePage() {
     }
 
     if (newActiveBets.length === 0) {
-      // This case should ideally be caught by BettingArea's validation, but good to have a fallback.
       toast({ title: "No Valid Bets Placed", description: `Ensure valid selections and amounts (min ₹${MIN_BET_AMOUNT}).`, variant: "destructive" });
       return;
     }
@@ -262,7 +253,7 @@ export default function HomePage() {
                                         <li>Red / Green: Win x{PAYOUT_MULTIPLIERS.RED} of bet amount.</li>
                                         <li>Violet: Win x{PAYOUT_MULTIPLIERS.VIOLET} of bet amount.</li>
                                     </ul>
-                                    <p className="text-xs mt-1">Wins if your chosen color is the primary color of the winning number, or if you chose Violet and the winning number includes Violet.</p>
+                                    <p className="text-xs mt-1">Wins if your chosen color is the primary color of the winning number, OR if you chose Violet and the winning number includes Violet (e.g., numbers 0 or 5).</p>
                                 </div>
                                 <div>
                                     <strong className="text-foreground">Number Bet:</strong>

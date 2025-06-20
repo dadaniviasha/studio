@@ -1,10 +1,11 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import type { GameResult, ColorOption } from '@/lib/types';
+import type { GameResult } from '@/lib/types';
 import { Trophy, History } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { NUMBER_COLORS } from '@/lib/constants';
@@ -37,10 +38,9 @@ export function ResultsDisplay({ currentResult, history }: ResultsDisplayProps) 
 
   useEffect(() => {
     if (currentResult) {
-      // Add a slight delay for the animation to be noticeable if results update quickly
       const timer = setTimeout(() => {
         setRevealedResult(currentResult);
-      }, 100); // ms delay
+      }, 100); 
       return () => clearTimeout(timer);
     }
   }, [currentResult]);
@@ -73,13 +73,14 @@ export function ResultsDisplay({ currentResult, history }: ResultsDisplayProps) 
                   className={cn("text-sm px-3 py-1", 
                     displayResult.winningColor === 'RED' ? 'bg-red-500' :
                     displayResult.winningColor === 'GREEN' ? 'bg-green-500' :
-                    'bg-purple-500'
+                    'bg-purple-500' // This case implies VIOLET was the primary winning color, which NUMBER_COLORS handles
                   )}
                 >
                   {displayResult.winningColor}
                 </Badge>
-                {displayResult.winningVioletColor && (
-                  <Badge className="bg-purple-500 text-sm px-3 py-1">{displayResult.winningVioletColor}</Badge>
+                {/* Display Violet badge if the winning number inherently includes violet, based on NUMBER_COLORS */}
+                {NUMBER_COLORS[displayResult.winningNumber].violet && displayResult.winningColor !== 'VIOLET' && (
+                   <Badge className="bg-purple-500 text-sm px-3 py-1">VIOLET</Badge>
                 )}
               </div>
             </div>
@@ -117,8 +118,8 @@ export function ResultsDisplay({ currentResult, history }: ResultsDisplayProps) 
                       >
                         {res.winningColor}
                       </Badge>
-                       {res.winningVioletColor && (
-                        <Badge variant="outline" className="border-purple-500 text-purple-500 text-xs">{res.winningVioletColor}</Badge>
+                       {NUMBER_COLORS[res.winningNumber].violet && res.winningColor !== 'VIOLET' && (
+                        <Badge variant="outline" className="border-purple-500 text-purple-500 text-xs">VIOLET</Badge>
                       )}
                     </div>
                   </div>

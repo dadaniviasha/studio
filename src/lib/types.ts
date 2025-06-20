@@ -17,7 +17,6 @@ export interface Bet {
 export interface GameResult {
   roundId: string;
   winningColor: ColorOption; // This is the primary color of the winning number
-  winningVioletColor?: ColorOption; // This is 'VIOLET' if the winning number also has violet
   winningNumber: NumberOption;
   timestamp: number;
   finalizedBy: "admin" | "random";
