@@ -19,7 +19,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import QRCode from 'qrcode';
 
 const WITHDRAWAL_REQUESTS_STORAGE_KEY = 'CROTOS_WITHDRAWAL_REQUESTS';
 const DEPOSIT_REQUESTS_STORAGE_KEY = 'CROTOS_DEPOSIT_REQUESTS';
@@ -50,8 +49,6 @@ export default function WalletPage() {
   const [depositAmount, setDepositAmount] = useState('');
   const [withdrawalAmount, setWithdrawalAmount] = useState('');
   const [upiId, setUpiId] = useState('');
-  const [qrCodeDataUrl, setQrCodeDataUrl] = useState('');
-  const [isMobile, setIsMobile] = useState(false);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const { toast } = useToast();
@@ -59,7 +56,6 @@ export default function WalletPage() {
   const currentBalance = currentUser ? currentUser.walletBalance : 0;
   
   useEffect(() => {
-    setIsMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
     // In a real app, you would fetch this from your backend/database
     if (currentUser) {
         const dummyTransactions: WalletTransaction[] = [
@@ -75,24 +71,6 @@ export default function WalletPage() {
         setTransactions(dummyTransactions);
     }
 }, [currentUser]);
-
-useEffect(() => {
-    const amount = parseFloat(depositAmount);
-    if (!isNaN(amount) && amount >= MIN_DEPOSIT_AMOUNT) {
-      // In a real app, you'd include recipient UPI and other details
-      const upiUrl = `upi://pay?pa=recipient@upi&pn=Crotos&am=${amount.toFixed(2)}&cu=INR&tn=Deposit for Crotos`;
-      QRCode.toDataURL(upiUrl)
-        .then(url => {
-          setQrCodeDataUrl(url);
-        })
-        .catch(err => {
-          console.error("Failed to generate QR code:", err);
-          setQrCodeDataUrl('');
-        });
-    } else {
-      setQrCodeDataUrl('');
-    }
-  }, [depositAmount]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -275,19 +253,13 @@ useEffect(() => {
                     <Label>2. Scan QR to Pay</Label>
                     <div className="flex flex-col items-center justify-center p-4 rounded-lg bg-background/50 border">
                         <div className="bg-white p-2 rounded-lg w-[266px] h-[266px] flex items-center justify-center shadow-md">
-                            {qrCodeDataUrl ? (
-                                <Image
-                                    src={qrCodeDataUrl}
-                                    alt="UPI Payment QR Code"
-                                    width={250}
-                                    height={250}
-                                    className="rounded-sm"
-                                />
-                            ) : (
-                                <div className="w-[250px] h-[250px] flex items-center justify-center text-center text-muted-foreground p-4">
-                                    Enter a valid deposit amount to generate a QR code.
-                                </div>
-                            )}
+                           <Image
+                                src="/scanner.png"
+                                alt="UPI Payment QR Code"
+                                width={250}
+                                height={250}
+                                className="rounded-sm"
+                            />
                         </div>
                     </div>
                 </div>
@@ -323,14 +295,7 @@ useEffect(() => {
                     </div>
                 </div>
               </CardContent>
-              <CardFooter className="flex-col gap-3">
-                {qrCodeDataUrl && isMobile && (
-                   <a href={`upi://pay?pa=recipient@upi&pn=Crotos&am=${depositAmount}&cu=INR`} className="w-full">
-                    <Button type="button" className="w-full h-12 bg-primary/90 hover:bg-primary text-white">
-                        Pay with UPI App
-                    </Button>
-                   </a>
-                )}
+              <CardFooter>
                 <Button 
                     type="submit" 
                     className="w-full h-12 bg-green-500 hover:bg-green-600 text-white"
