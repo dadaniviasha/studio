@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { MIN_WITHDRAWAL_AMOUNT, MIN_DEPOSIT_AMOUNT } from '@/lib/constants';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
-import type { WalletTransaction, WithdrawalRequest } from '@/lib/types';
+import type { WalletTransaction, WithdrawalRequest, DepositRequest } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -22,6 +22,7 @@ import { cn } from '@/lib/utils';
 import QRCode from 'qrcode';
 
 const WITHDRAWAL_REQUESTS_STORAGE_KEY = 'CROTOS_WITHDRAWAL_REQUESTS';
+const DEPOSIT_REQUESTS_STORAGE_KEY = 'CROTOS_DEPOSIT_REQUESTS';
 
 const getTransactionIcon = (type: WalletTransaction['type']) => {
   const iconClasses = "h-5 w-5";
@@ -118,15 +119,36 @@ useEffect(() => {
       return;
     }
     
-    // In a real app, this would upload the file and create a 'pending deposit' record for an admin to approve.
-    // For this simulation, we'll just show a confirmation message.
-    setDepositAmount('');
-    setSelectedFile(null); // Reset file input
-    toast({ 
-      title: "Deposit Awaiting Confirmation", 
-      description: `Your deposit of ₹${amount.toFixed(2)} with screenshot '${selectedFile.name}' is being processed. An admin will update your balance shortly after confirming payment.`,
-      duration: 8000
-    });
+    try {
+      const existingRequestsString = localStorage.getItem(DEPOSIT_REQUESTS_STORAGE_KEY);
+      const existingRequests: DepositRequest[] = existingRequestsString ? JSON.parse(existingRequestsString) : [];
+      
+      const newRequest: DepositRequest = {
+        id: `dp-${Date.now()}`,
+        userId: currentUser.id,
+        username: currentUser.username,
+        email: currentUser.email,
+        amount: amount,
+        screenshotFilename: selectedFile.name,
+        requestedAt: Date.now(),
+        status: 'pending',
+      };
+
+      const updatedRequests = [...existingRequests, newRequest];
+      localStorage.setItem(DEPOSIT_REQUESTS_STORAGE_KEY, JSON.stringify(updatedRequests));
+      
+      setDepositAmount('');
+      setSelectedFile(null); // Reset file input
+      toast({ 
+        title: "Deposit Awaiting Confirmation", 
+        description: `Your deposit of ₹${amount.toFixed(2)} with screenshot '${selectedFile.name}' is being processed. An admin will update your balance shortly after confirming payment.`,
+        duration: 8000
+      });
+
+    } catch (error) {
+       console.error("Failed to save deposit request:", error);
+       toast({ title: "Request Failed", description: "Could not save your deposit request. Please try again.", variant: "destructive" });
+    }
   };
 
   const handleWithdrawal = (e: React.FormEvent) => {

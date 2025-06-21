@@ -1,3 +1,4 @@
+
 export type ColorOption = "RED" | "GREEN" | "VIOLET";
 export type NumberOption = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 
@@ -48,6 +49,18 @@ export interface WithdrawalRequest {
   email: string;
   upiId: string;
   amount: number;
+  requestedAt: number;
+  status: "pending" | "approved" | "rejected";
+  processedAt?: number;
+}
+
+export interface DepositRequest {
+  id: string;
+  userId: string;
+  username: string;
+  email: string;
+  amount: number;
+  screenshotFilename: string;
   requestedAt: number;
   status: "pending" | "approved" | "rejected";
   processedAt?: number;

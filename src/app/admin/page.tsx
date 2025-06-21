@@ -5,6 +5,7 @@ import { AppHeader } from '@/components/layout/AppHeader';
 import { AppFooter } from '@/components/layout/AppFooter';
 import { ResultController } from '@/components/admin/ResultController';
 import { PendingWithdrawals } from '@/components/admin/PendingWithdrawals';
+import { PendingDeposits } from '@/components/admin/PendingDeposits';
 import { CurrentBetsOverview } from '@/components/admin/CurrentBetsOverview';
 import { UserManagement } from '@/components/admin/UserManagement';
 import { ShieldCheck, AlertTriangle } from 'lucide-react';
@@ -59,18 +60,20 @@ export default function AdminPage() {
             <p className="text-lg text-muted-foreground mt-2">Oversee game operations and manage user requests.</p>
         </div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-start">
+        <div className="space-y-8">
           <ResultController />
-          <PendingWithdrawals />
-        </div>
-        
-        <div className="mt-8">
-            <CurrentBetsOverview />
-        </div>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-start">
+              <PendingDeposits />
+              <PendingWithdrawals />
+          </div>
 
-        {/* <div className="mt-8">
-            <UserManagement />
-        </div> */}
+          <CurrentBetsOverview />
+
+          {/* <div className="mt-8">
+              <UserManagement />
+          </div> */}
+        </div>
 
       </main>
       <AppFooter />
