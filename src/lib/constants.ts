@@ -3,9 +3,16 @@ export const MIN_BET_AMOUNT = 5;
 export const MIN_DEPOSIT_AMOUNT = 50;
 export const MIN_WITHDRAWAL_AMOUNT = 200;
 
-export const ADMIN_COMMISSION_RATE = 0.30; // 30% commission for the admin
+// Defines the fixed payout multipliers for different bet types.
+// The house edge is built into these multipliers.
+export const PAYOUT_MULTIPLIERS = {
+  RED: 1.9,    // Bet 10, win 19 (9 profit)
+  GREEN: 1.9,  // Bet 10, win 19 (9 profit)
+  VIOLET: 4.5, // Bet 10, win 45 (35 profit)
+  NUMBER: 9,   // Bet 10, win 90 (80 profit)
+};
 
-export const GAME_ROUND_DURATION_SECONDS = 30; // Updated from 60 to 30
+export const GAME_ROUND_DURATION_SECONDS = 30;
 export const RESULT_PROCESSING_DURATION_SECONDS = 10; // Time to show result before new round
 
 // Defines the primary color and if Violet is also applicable for each number
@@ -21,3 +28,5 @@ export const NUMBER_COLORS: Record<number, { primary: 'RED' | 'GREEN', violet?: 
   8: { primary: 'RED' },                   // 8 is Red
   9: { primary: 'GREEN' },                 // 9 is Green
 };
+
+    

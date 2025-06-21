@@ -1,7 +1,7 @@
 "use server";
 
 import type { Bet, ColorOption, NumberOption, GameResult, WithdrawalRequest } from "@/lib/types";
-import { MIN_BET_AMOUNT, PAYOUT_MULTIPLIERS, NUMBER_COLORS, MIN_WITHDRAWAL_AMOUNT } from "@/lib/constants";
+import { MIN_BET_AMOUNT, MIN_WITHDRAWAL_AMOUNT } from "@/lib/constants";
 
 // This is a placeholder file. In a real application, these actions would interact with a database,
 // handle authentication, and perform actual game logic. For this scaffold, they will mostly
@@ -30,8 +30,12 @@ export async function placeBetAction(args: PlaceBetArgs): Promise<{ success: boo
 
   // Simulate deducting balance and saving bet
   const newBet: Bet = {
-    ...args,
     id: `bet_${Date.now()}`,
+    userId: args.userId,
+    roundId: args.roundId,
+    selectedColor: args.type === 'color' ? args.selection as ColorOption : null,
+    selectedNumber: args.type === 'number' ? args.selection as NumberOption : null,
+    amount: args.amount,
     timestamp: Date.now(),
   };
   
@@ -46,7 +50,6 @@ export async function placeBetAction(args: PlaceBetArgs): Promise<{ success: boo
 interface SetNextResultArgs {
   winningNumber: NumberOption;
   winningColor: ColorOption;
-  winningVioletColor?: ColorOption;
   finalizedBy: "admin" | "random";
 }
 export async function setNextResultAction(args: SetNextResultArgs): Promise<{ success: boolean; message: string; result?: GameResult }> {
@@ -121,3 +124,5 @@ export async function processWithdrawalAction(args: ProcessWithdrawalArgs): Prom
 }
 
 // Add more server actions as needed (deposit, user management, etc.)
+
+    

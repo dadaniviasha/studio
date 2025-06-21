@@ -8,7 +8,7 @@ import { BettingArea } from '@/components/game/BettingArea';
 import { ResultsDisplay } from '@/components/game/ResultsDisplay';
 import { GameCountdown } from '@/components/game/GameCountdown';
 import type { GameResult, Bet as BetType, GameRound, BetSubmission, ColorOption, NumberOption } from '@/lib/types';
-import { NUMBER_COLORS, ADMIN_COMMISSION_RATE, RESULT_PROCESSING_DURATION_SECONDS, GAME_ROUND_DURATION_SECONDS, MIN_BET_AMOUNT } from '@/lib/constants';
+import { NUMBER_COLORS, PAYOUT_MULTIPLIERS, RESULT_PROCESSING_DURATION_SECONDS, GAME_ROUND_DURATION_SECONDS, MIN_BET_AMOUNT } from '@/lib/constants';
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -95,7 +95,6 @@ export default function HomePage() {
     setTimeout(() => {
       let newResult: GameResult | null = null;
       
-      // --- REVISED RESULT DETERMINATION LOGIC ---
       const adminDefinedResultString = localStorage.getItem(ADMIN_RESULT_STORAGE_KEY);
       
       if (adminDefinedResultString) {
@@ -109,18 +108,15 @@ export default function HomePage() {
               timestamp: Date.now(),
               finalizedBy: 'admin',
             };
-            // IMPORTANT: Remove item only after successfully using it.
             localStorage.removeItem(ADMIN_RESULT_STORAGE_KEY); 
           }
         } catch (error) {
           console.error("Error parsing admin result. Falling back to random:", error);
-          // Clean up invalid data from storage
           localStorage.removeItem(ADMIN_RESULT_STORAGE_KEY);
         }
       }
 
       if (!newResult) {
-        // Default to random generation if no admin result was found or if it was invalid
         const winningNumber = Math.floor(Math.random() * 10) as NumberOption;
         let determinedWinningColor: ColorOption;
   
@@ -139,66 +135,69 @@ export default function HomePage() {
           finalizedBy: 'random', 
         };
       }
-      // --- END OF REVISED LOGIC ---
 
       setCurrentResult(newResult);
       setResultHistory(prev => [newResult!, ...prev.slice(0, 9)]); 
 
-      // --- NEW PARIMUTUEL PAYOUT LOGIC ---
-      // Using refs to get the latest state without causing the callback to be recreated.
+      // --- NEW FIXED-ODDS PAYOUT LOGIC ---
       const betsPlacedThisRound = activeBetsRef.current.filter(bet => bet.roundId === round.id && !bet.isProcessed);
-      const totalBetAmountThisRound = betsPlacedThisRound.reduce((sum, bet) => sum + bet.amount, 0);
-      const prizePool = totalBetAmountThisRound * (1 - ADMIN_COMMISSION_RATE);
-
-      const winningBets = betsPlacedThisRound.filter(bet => {
-          if (bet.selectedNumber !== null && bet.selectedNumber === newResult!.winningNumber) return true;
-          if (bet.selectedColor !== null && bet.selectedColor === newResult!.winningColor) return true;
-          return false;
-      });
-
-      const totalWinningBetAmount = winningBets.reduce((sum, bet) => sum + bet.amount, 0);
-      let totalPayoutsThisRound = 0;
-      let anyBetWon = winningBets.length > 0;
+      let totalWinningsThisRound = 0;
       
       const updatedBets = activeBetsRef.current.map(bet => {
-        if (bet.roundId !== round.id || bet.isProcessed) return bet; 
+        if (bet.roundId !== round.id || bet.isProcessed) return bet;
 
-        const isWinner = winningBets.some(winningBet => winningBet.id === bet.id);
+        let isWinner = false;
+        let payoutMultiplier = 0;
+        
+        if (bet.selectedColor !== null && bet.selectedColor === newResult!.winningColor) {
+            isWinner = true;
+            payoutMultiplier = PAYOUT_MULTIPLIERS[bet.selectedColor];
+        }
+        if (bet.selectedNumber !== null && bet.selectedNumber === newResult!.winningNumber) {
+            isWinner = true;
+            // Number bets have their own multiplier and win independently.
+            // If user also won on color, we add this win on top.
+            payoutMultiplier += PAYOUT_MULTIPLIERS.NUMBER;
+        }
+
         const processedBet = { ...bet, isWin: false, payout: 0, isProcessed: true };
         
         if (isWinner) {
+            // Recalculate payout for each winning condition if both are met
             let payoutAmount = 0;
-            // Distribute the prize pool proportionally among winners.
-            if (totalWinningBetAmount > 0) {
-                payoutAmount = (bet.amount / totalWinningBetAmount) * prizePool;
+            if (bet.selectedColor === newResult!.winningColor) {
+                payoutAmount += bet.amount * PAYOUT_MULTIPLIERS[bet.selectedColor];
             }
-            
-            totalPayoutsThisRound += payoutAmount;
+            if (bet.selectedNumber === newResult!.winningNumber) {
+                payoutAmount += bet.amount * PAYOUT_MULTIPLIERS.NUMBER;
+            }
+
+            totalWinningsThisRound += payoutAmount;
             processedBet.isWin = true;
             processedBet.payout = payoutAmount;
         }
         return processedBet;
       });
-
+      
       setActiveBets(updatedBets); 
       
-      const newBalance = currentDisplayedBalanceRef.current + totalPayoutsThisRound;
+      const newBalance = currentDisplayedBalanceRef.current + totalWinningsThisRound;
       if (currentUser) {
         updateAuthBalance(newBalance); 
       }
       setCurrentDisplayedBalance(newBalance); 
       
-      if (anyBetWon) {
+      if (totalWinningsThisRound > 0) {
         toast({ 
             title: "🎉 Congratulations! 🎉", 
-            description: `A total of ₹${totalPayoutsThisRound.toFixed(2)} was paid out to winners this round.`,
+            description: `You won a total of ₹${totalWinningsThisRound.toFixed(2)} this round.`,
             variant: "default", 
             duration: 5000,
         });
         playLocalSound(winSoundRef);
       } else if (betsPlacedThisRound.length > 0) { 
         toast({ 
-            title: "💔 Round Over - No Wins 💔", 
+            title: "💔 Round Over 💔", 
             description: "No wins this time. Better luck next round!", 
             variant: "default",
             duration: 5000,
@@ -351,22 +350,23 @@ export default function HomePage() {
                                 <p>2. You can bet on a specific Color (Red, Green, Violet) and/or a specific Number (0-9). Bets on color and number are independent and can have different amounts.</p>
                                 <p>3. Enter your bet amount(s) for your selection(s).</p>
                                 <p>4. Place your bet(s) before the countdown timer ends.</p>
-                                <p>5. If your prediction is correct, you win a share of the prize pool!</p>
+                                <p>5. If your prediction is correct, you win based on a fixed multiplier!</p>
                             </AccordionContent>
                         </AccordionItem>
                         <AccordionItem value="item-2">
                             <AccordionTrigger>Payout System</AccordionTrigger>
                             <AccordionContent className="space-y-3 text-muted-foreground">
-                                <p>This game uses a <strong>parimutuel betting system</strong>. An admin commission of 30% is taken from the total betting pool each round. The remaining 70% forms the prize pool which is distributed among all winning bets.</p>
-                                <p className="font-semibold mt-2">Your payout depends on how much you bet and how much others bet on the winning option. It is not a fixed multiplier.</p>
-                                <p className="text-xs mt-2 italic">
-                                  <strong>Example:</strong> The total bets in a round are ₹1000. The prize pool is ₹700 (70%). Total bets on the winning option (e.g., RED) are ₹500. If you bet ₹100 on RED, your payout is (100/500) * 700 = ₹140.
-                                </p>
+                                <p>This game uses a <strong>fixed-odds payout system</strong>. Your winnings are calculated by multiplying your bet amount by a fixed multiplier for each bet type.</p>
+                                <ul className="list-disc list-inside space-y-2 mt-2">
+                                  <li><strong className="text-foreground">Bet on Red or Green:</strong> Win <strong className="text-primary">{PAYOUT_MULTIPLIERS.RED}x</strong> your bet amount. (e.g., ₹10 wins ₹19).</li>
+                                  <li><strong className="text-foreground">Bet on Violet:</strong> Win <strong className="text-primary">{PAYOUT_MULTIPLIERS.VIOLET}x</strong> your bet amount. (e.g., ₹10 wins ₹45).</li>
+                                  <li><strong className="text-foreground">Bet on a Number:</strong> Win <strong className="text-primary">{PAYOUT_MULTIPLIERS.NUMBER}x</strong> your bet amount. (e.g., ₹10 wins ₹90).</li>
+                                </ul>
                                 <div className="mt-4">
                                     <strong className="text-foreground">Special Condition for Numbers 0 & 5:</strong>
                                     <p className="text-xs mt-1">If the winning number is 0 or 5, the Winning Color for the round is automatically VIOLET. Bets on VIOLET will win, and bets on RED or GREEN will lose in this specific scenario.</p>
                                 </div>
-                                 <p className="italic">Note: Bets on color and number are independent. You can win on your color bet, your number bet, both, or neither.</p>
+                                 <p className="italic mt-3">Note: Bets on color and number are independent. You can win on your color bet, your number bet, both, or neither in the same round.</p>
                             </AccordionContent>
                         </AccordionItem>
                         <AccordionItem value="item-3">
@@ -409,3 +409,5 @@ export default function HomePage() {
     </div>
   );
 }
+
+    
