@@ -1,7 +1,7 @@
 
 # How to Fix the "Missing or insufficient permissions" Error
 
-You've encountered an important Firebase security feature! The error you're seeing is because your database is correctly protecting your users' data. By default, no one can read the list of all users.
+You've encountered an important Firebase security feature! The error you're seeing is because your database is correctly protecting your users' data. By default, no one can read or write other users' data.
 
 To grant your **admin account** the necessary permissions, you need to update your project's **Firestore Security Rules**.
 
@@ -22,7 +22,7 @@ Open a new browser tab and navigate to the [Firebase Console](https://console.fi
 
 You will see an editor with some default rules. **Delete all the text** in that editor and **replace it with the rules below**.
 
-This new ruleset specifically allows a user to read the full list of users **only if their own user document has an `isAdmin` field set to `true`**.
+This new ruleset specifically allows a user to read or update another user's data **only if their own user document has an `isAdmin` field set to `true`**.
 
 ```
 rules_version = '2';
@@ -58,12 +58,12 @@ Click the **Publish** button above the editor. The changes might take a minute t
 
 ---
 
-### Still Not Working? The #1 Cause
+### **IMPORTANT: The Final Check**
 
 If you've updated the rules and still see the error, the problem is almost always the `isAdmin` flag on your user account in the database.
 
 1.  In the Firebase Console, go to **Firestore Database** -> **Data** tab.
-2.  In the `users` collection, find the document with the ID that matches your admin user's UID (from the Authentication tab).
+2.  In the `users` collection, find the document with the ID that matches your admin user's UID (you can find this in the Firebase Authentication tab).
 3.  Ensure that document contains a field named exactly **`isAdmin`** (lowercase 'i', uppercase 'A').
 4.  The value of this field **MUST be a boolean `true`**, not the string `"true"`.
 

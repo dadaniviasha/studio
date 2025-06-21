@@ -91,6 +91,9 @@ export async function requestWithdrawalAction(args: RequestWithdrawalArgs): Prom
         amount: args.amount,
         requestedAt: Date.now(),
         status: 'pending',
+        username: 'Unknown',
+        email: 'Unknown',
+        upiId: 'Unknown'
     };
 
     // await saveWithdrawalRequest(newRequest);
@@ -126,7 +129,16 @@ export async function processWithdrawalAction(args: ProcessWithdrawalArgs): Prom
 
 export async function getAllUsersAction(): Promise<User[]> {
     // In a real app, you might want to add pagination
-    return await getAllUsers();
+    try {
+      return await getAllUsers();
+    } catch (error: any) {
+        if (error.code === 'permission-denied' || error.message.includes('insufficient permissions')) {
+            console.error("PERMISSION DENIED trying to list all users. This requires special Firestore rules for admins.");
+            // Re-throw the error with a more specific message that the client can handle.
+            throw new Error("Missing or insufficient permissions. This action requires admin privileges defined in Firestore rules. See PROPOSED_FIRESTORE_RULES.md for the solution.");
+        }
+        throw error; // Re-throw other errors
+    }
 }
 
 export async function updateUserBalanceAction(userId: string, newBalance: number): Promise<{ success: boolean; message: string }> {
@@ -166,7 +178,8 @@ export async function approveDepositAction(userId: string, depositAmount: number
     } catch (error: any) {
         console.error("Error approving deposit via server action:", error);
         if (error.code === 'permission-denied' || error.code === 'unavailable') {
-             return { success: false, message: "Permission Denied: Ensure you are an admin and have updated Firestore security rules to allow reading user data." };
+             const specificMessage = "Permission Denied. This is a database security rule issue. Please verify two things: 1. You have published the latest security rules from PROPOSED_FIRESTORE_RULES.md. 2. Your own admin user document in the Firestore 'users' collection has a boolean field 'isAdmin' set to true.";
+             return { success: false, message: specificMessage };
         }
         return { success: false, message: "A server error occurred while approving the deposit." };
     }
