@@ -9,19 +9,63 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { DollarSign, ArrowDownCircle, ArrowUpCircle, WalletCards, AlertTriangle } from 'lucide-react';
+import { DollarSign, ArrowDownCircle, ArrowUpCircle, WalletCards, AlertTriangle, History, ArrowDown, ArrowUp, Trophy, Gift, ArrowRightLeft } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { MIN_WITHDRAWAL_AMOUNT } from '@/lib/constants';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
+import type { WalletTransaction } from '@/lib/types';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { cn } from '@/lib/utils';
+
+const getTransactionIcon = (type: WalletTransaction['type']) => {
+  const iconClasses = "h-5 w-5";
+  switch (type) {
+    case 'deposit': return <ArrowDown className={cn(iconClasses, "text-green-500")} />;
+    case 'withdrawal': return <ArrowUp className={cn(iconClasses, "text-red-500")} />;
+    case 'bet_placed': return <ArrowRightLeft className={cn(iconClasses, "text-gray-400")} />;
+    case 'bet_won': return <Trophy className={cn(iconClasses, "text-yellow-500")} />;
+    case 'signup_bonus': return <Gift className={cn(iconClasses, "text-primary")} />;
+    default: return <DollarSign className={cn(iconClasses, "text-muted-foreground")} />;
+  }
+};
+
+const getStatusBadgeVariant = (status: WalletTransaction['status']): 'default' | 'secondary' | 'destructive' => {
+  switch (status) {
+    case 'completed': return 'default';
+    case 'pending': return 'secondary';
+    case 'failed': return 'destructive';
+    default: return 'secondary';
+  }
+};
 
 export default function WalletPage() {
   const { currentUser, updateBalance, loading: authLoading } = useAuth();
   const [depositAmount, setDepositAmount] = useState('');
   const [withdrawalAmount, setWithdrawalAmount] = useState('');
+  const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const { toast } = useToast();
 
   const currentBalance = currentUser ? currentUser.walletBalance : 0;
+
+  useEffect(() => {
+    // In a real app, you would fetch this from your backend/database
+    if (currentUser) {
+        const dummyTransactions: WalletTransaction[] = [
+            { id: 'txn5', userId: currentUser.id, type: 'signup_bonus', amount: 50, timestamp: Date.now() - 86400000 * 3, description: 'Welcome bonus', status: 'completed' },
+            { id: 'txn1', userId: currentUser.id, type: 'deposit', amount: 500, timestamp: Date.now() - 86400000 * 2, description: 'Deposit via UPI', status: 'completed' },
+            { id: 'txn2', userId: currentUser.id, type: 'bet_placed', amount: -50, timestamp: Date.now() - 86400000, description: 'Bet on RED', status: 'completed' },
+            { id: 'txn3', userId: currentUser.id, type: 'bet_won', amount: 100, timestamp: Date.now() - 86400000, description: 'Win on RED', status: 'completed' },
+            { id: 'txn4', userId: currentUser.id, type: 'withdrawal', amount: -200, timestamp: Date.now() - 3600000, description: 'Withdrawal request', status: 'pending' },
+             { id: 'txn6', userId: currentUser.id, type: 'bet_placed', amount: -10, timestamp: Date.now() - 7200000, description: 'Bet on Number 7', status: 'completed' },
+              { id: 'txn7', userId: currentUser.id, type: 'deposit', amount: 100, timestamp: Date.now() - 86400000 * 4, description: 'Failed Deposit', status: 'failed' },
+        ].sort((a, b) => b.timestamp - a.timestamp); // Sort by most recent first
+
+        setTransactions(dummyTransactions);
+    }
+}, [currentUser]);
 
   const handleDeposit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -195,11 +239,56 @@ export default function WalletPage() {
         </div>
         <Card className="max-w-4xl mx-auto mt-8 shadow-xl bg-card/80 backdrop-blur-sm">
             <CardHeader>
-                <CardTitle className="text-xl font-headline">Transaction History</CardTitle>
+                <CardTitle className="text-xl font-headline flex items-center">
+                    <History className="mr-2 h-6 w-6" /> Transaction History
+                </CardTitle>
                 <CardDescription>Your recent wallet activity.</CardDescription>
             </CardHeader>
             <CardContent>
-                <p className="text-center text-muted-foreground py-8">Transaction history feature coming soon (simulation).</p>
+                <ScrollArea className="h-[400px]">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="w-[120px]">Type</TableHead>
+                                <TableHead>Description</TableHead>
+                                <TableHead>Date</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead className="text-right">Amount</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                        {transactions.length > 0 ? (
+                            transactions.map((tx) => (
+                            <TableRow key={tx.id}>
+                                <TableCell>
+                                <div className="flex items-center gap-2 font-medium">
+                                    {getTransactionIcon(tx.type)}
+                                    <span className="capitalize hidden sm:inline">{tx.type.replace('_', ' ')}</span>
+                                </div>
+                                </TableCell>
+                                <TableCell className="text-muted-foreground">{tx.description}</TableCell>
+                                <TableCell className="text-muted-foreground">{new Date(tx.timestamp).toLocaleDateString()}</TableCell>
+                                <TableCell>
+                                    <Badge variant={getStatusBadgeVariant(tx.status)} className="capitalize">{tx.status}</Badge>
+                                </TableCell>
+                                <TableCell className={cn(
+                                    "text-right font-semibold font-mono",
+                                    tx.amount > 0 ? 'text-green-500' : 'text-red-500'
+                                )}>
+                                    {tx.amount > 0 ? `+₹${tx.amount.toFixed(2)}` : `-₹${Math.abs(tx.amount).toFixed(2)}`}
+                                </TableCell>
+                            </TableRow>
+                            ))
+                        ) : (
+                            <TableRow>
+                            <TableCell colSpan={5} className="text-center py-16 text-muted-foreground">
+                                No transactions yet.
+                            </TableCell>
+                            </TableRow>
+                        )}
+                        </TableBody>
+                    </Table>
+                </ScrollArea>
             </CardContent>
         </Card>
       </main>

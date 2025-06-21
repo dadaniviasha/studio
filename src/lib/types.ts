@@ -36,8 +36,8 @@ export interface WalletTransaction {
   type: "deposit" | "withdrawal" | "bet_placed" | "bet_won" | "signup_bonus";
   amount: number;
   timestamp: number;
-  relatedBetId?: string;
-  status?: "pending" | "completed" | "failed"; // For deposits/withdrawals
+  description: string;
+  status: "completed" | "pending" | "failed";
 }
 
 export interface WithdrawalRequest {
