@@ -81,7 +81,7 @@ export default function WalletPage() {
     const newBalance = currentBalance + amount;
     updateBalance(newBalance);
     setDepositAmount('');
-    toast({ title: "Deposit Successful (Simulation)", description: `₹${amount.toFixed(2)} has been added to your wallet.` });
+    toast({ title: "Deposit Successful", description: `₹${amount.toFixed(2)} has been added to your wallet.` });
   };
 
   const handleWithdrawal = (e: React.FormEvent) => {
@@ -103,7 +103,7 @@ export default function WalletPage() {
     updateBalance(newBalance);
     setWithdrawalAmount('');
     // Simulate API call for withdrawal request
-    toast({ title: "Withdrawal Requested", description: `Your request to withdraw ₹${amount.toFixed(2)} is notionally pending approval (simulation).` });
+    toast({ title: "Withdrawal Requested", description: `Your request to withdraw ₹${amount.toFixed(2)} is pending approval.` });
   };
 
   if (authLoading) {
@@ -144,7 +144,7 @@ export default function WalletPage() {
           <CardHeader className="text-center">
             <WalletCards className="mx-auto h-16 w-16 text-primary mb-4" />
             <CardTitle className="text-3xl font-headline">{currentUser.username}&apos;s Wallet</CardTitle>
-            <CardDescription className="text-lg">Manage your funds. (All transactions are simulated).</CardDescription>
+            <CardDescription className="text-lg">Manage your funds.</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-center py-6 border-b border-t border-border/40 my-6">
@@ -158,17 +158,15 @@ export default function WalletPage() {
           <Card className="shadow-xl bg-card/80 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="flex items-center text-xl font-headline text-green-500">
-                <ArrowDownCircle className="mr-2 h-6 w-6" /> Deposit Funds (Simulation)
+                <ArrowDownCircle className="mr-2 h-6 w-6" /> Deposit Funds
               </CardTitle>
-              <CardDescription>Add simulated money to your wallet.</CardDescription>
+              <CardDescription>Add money to your wallet.</CardDescription>
             </CardHeader>
             <form onSubmit={handleDeposit}>
               <CardContent className="space-y-4">
                  <div className="flex flex-col items-center gap-4 p-4 rounded-lg bg-background/50">
                   <p className="text-sm text-center text-muted-foreground">
                     Scan the QR code below to add funds.
-                    <br />
-                    <span className="font-bold">(This is a simulation)</span>
                   </p>
                   <Image
                     src="https://placehold.co/250x250.png"
@@ -206,9 +204,9 @@ export default function WalletPage() {
           <Card className="shadow-xl bg-card/80 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="flex items-center text-xl font-headline text-red-500">
-                <ArrowUpCircle className="mr-2 h-6 w-6" /> Withdraw Funds (Simulation)
+                <ArrowUpCircle className="mr-2 h-6 w-6" /> Withdraw Funds
               </CardTitle>
-              <CardDescription>Request a simulated withdrawal.</CardDescription>
+              <CardDescription>Request a withdrawal.</CardDescription>
             </CardHeader>
             <form onSubmit={handleWithdrawal}>
               <CardContent className="space-y-4">

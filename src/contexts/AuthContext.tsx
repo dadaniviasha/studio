@@ -164,10 +164,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateBalance = useCallback(async (newBalance: number) => {
     if (currentUser) {
       setCurrentUser(prevUser => prevUser ? { ...prevUser, walletBalance: newBalance } : null);
-      // In a secure setup, the database update would be handled by a Cloud Function.
-      // We removed the direct call to updateUserBalanceInDb to respect security rules.
-      // The line below is a good place for a developer note.
-      console.log("Client-side balance updated for UI. A secure backend function would be needed to persist this change.");
+      // WARNING: This is a client-side update and is insecure for a real-money application.
+      // In a production environment, this logic MUST be moved to a secure backend,
+      // like a Firebase Cloud Function, to prevent users from modifying their own balance.
+      await updateUserBalanceInDb(currentUser.id, newBalance);
     }
   }, [currentUser]);
 
