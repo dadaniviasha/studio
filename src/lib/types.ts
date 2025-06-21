@@ -44,6 +44,8 @@ export interface WalletTransaction {
 export interface WithdrawalRequest {
   id:string;
   userId: string;
+  username: string;
+  email: string;
   amount: number;
   requestedAt: number;
   status: "pending" | "approved" | "rejected";

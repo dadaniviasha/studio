@@ -14,11 +14,13 @@ import { useToast } from "@/hooks/use-toast";
 import { MIN_WITHDRAWAL_AMOUNT, MIN_DEPOSIT_AMOUNT } from '@/lib/constants';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
-import type { WalletTransaction } from '@/lib/types';
+import type { WalletTransaction, WithdrawalRequest } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
+
+const WITHDRAWAL_REQUESTS_STORAGE_KEY = 'CROTOS_WITHDRAWAL_REQUESTS';
 
 const getTransactionIcon = (type: WalletTransaction['type']) => {
   const iconClasses = "h-5 w-5";
@@ -105,9 +107,29 @@ export default function WalletPage() {
       return;
     }
 
-    // This is a simulation. In a real app, this would send a request to your backend.
-    setWithdrawalAmount('');
-    toast({ title: "Withdrawal Requested", description: `Your request to withdraw ₹${amount.toFixed(2)} is pending approval.` });
+    try {
+      const existingRequestsString = localStorage.getItem(WITHDRAWAL_REQUESTS_STORAGE_KEY);
+      const existingRequests: WithdrawalRequest[] = existingRequestsString ? JSON.parse(existingRequestsString) : [];
+      
+      const newRequest: WithdrawalRequest = {
+        id: `wd-${Date.now()}`,
+        userId: currentUser.id,
+        username: currentUser.username,
+        email: currentUser.email,
+        amount: amount,
+        requestedAt: Date.now(),
+        status: 'pending',
+      };
+
+      const updatedRequests = [...existingRequests, newRequest];
+      localStorage.setItem(WITHDRAWAL_REQUESTS_STORAGE_KEY, JSON.stringify(updatedRequests));
+
+      setWithdrawalAmount('');
+      toast({ title: "Withdrawal Requested", description: `Your request to withdraw ₹${amount.toFixed(2)} is pending approval.` });
+    } catch (error) {
+       console.error("Failed to save withdrawal request:", error);
+       toast({ title: "Request Failed", description: "Could not save your withdrawal request. Please try again.", variant: "destructive" });
+    }
   };
 
   if (authLoading) {

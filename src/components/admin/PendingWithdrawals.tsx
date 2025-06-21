@@ -10,34 +10,51 @@ import { CheckCircle, XCircle, ListChecks } from 'lucide-react';
 import type { WithdrawalRequest } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 
-// Dummy data for withdrawals
-const initialWithdrawalRequests: WithdrawalRequest[] = [
-  { id: 'wd001', userId: 'user123', amount: 250, requestedAt: Date.now() - 3600000, status: 'pending' },
-  { id: 'wd002', userId: 'user456', amount: 500, requestedAt: Date.now() - 7200000, status: 'pending' },
-  { id: 'wd003', userId: 'user789', amount: 1200, requestedAt: Date.now() - 10800000, status: 'approved', processedAt: Date.now() - 1000000 },
-];
+const WITHDRAWAL_REQUESTS_STORAGE_KEY = 'CROTOS_WITHDRAWAL_REQUESTS';
 
-
-interface PendingWithdrawalsProps {
-  // onProcessRequest: (requestId: string, status: 'approved' | 'rejected') => void;
-}
-
-export function PendingWithdrawals({}: PendingWithdrawalsProps) {
+export function PendingWithdrawals() {
   const [requests, setRequests] = useState<WithdrawalRequest[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
-    // Simulate fetching requests
-    setRequests(initialWithdrawalRequests);
+    const updateStateFromStorage = () => {
+      try {
+        const storedRequests = localStorage.getItem(WITHDRAWAL_REQUESTS_STORAGE_KEY);
+        setRequests(storedRequests ? JSON.parse(storedRequests) : []);
+      } catch (error) {
+        console.error("Error reading withdrawal requests from localStorage:", error);
+        setRequests([]);
+      }
+    };
+
+    updateStateFromStorage();
+
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === WITHDRAWAL_REQUESTS_STORAGE_KEY) {
+        updateStateFromStorage();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   const handleProcessRequest = (requestId: string, newStatus: 'approved' | 'rejected') => {
-    setRequests(prevRequests =>
-      prevRequests.map(req =>
-        req.id === requestId ? { ...req, status: newStatus, processedAt: Date.now() } : req
-      )
+    const updatedRequests = requests.map(req =>
+      req.id === requestId ? { ...req, status: newStatus, processedAt: Date.now() } : req
     );
-    toast({ title: `Request ${newStatus}`, description: `Withdrawal request ${requestId} has been ${newStatus}.` });
+    
+    try {
+        localStorage.setItem(WITHDRAWAL_REQUESTS_STORAGE_KEY, JSON.stringify(updatedRequests));
+        setRequests(updatedRequests); // Update state locally immediately
+        toast({ title: `Request ${newStatus}`, description: `Withdrawal request ${requestId} has been ${newStatus}.` });
+    } catch (error) {
+        console.error("Failed to update withdrawal requests in localStorage:", error);
+        toast({ title: "Update Failed", description: "Could not process the request.", variant: "destructive" });
+    }
   };
   
   const pending = requests.filter(r => r.status === 'pending');
@@ -59,7 +76,7 @@ export function PendingWithdrawals({}: PendingWithdrawalsProps) {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>User ID</TableHead>
+                  <TableHead>User</TableHead>
                   <TableHead>Amount (₹)</TableHead>
                   <TableHead>Requested At</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -68,7 +85,10 @@ export function PendingWithdrawals({}: PendingWithdrawalsProps) {
               <TableBody>
                 {pending.map((req) => (
                   <TableRow key={req.id}>
-                    <TableCell>{req.userId}</TableCell>
+                    <TableCell>
+                      <div className="font-medium">{req.username}</div>
+                      <div className="text-xs text-muted-foreground">{req.email}</div>
+                    </TableCell>
                     <TableCell>₹{req.amount.toFixed(2)}</TableCell>
                     <TableCell>{new Date(req.requestedAt).toLocaleString()}</TableCell>
                     <TableCell className="text-right space-x-2">
@@ -94,7 +114,7 @@ export function PendingWithdrawals({}: PendingWithdrawalsProps) {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>User ID</TableHead>
+                  <TableHead>Username</TableHead>
                   <TableHead>Amount (₹)</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Processed At</TableHead>
@@ -103,7 +123,7 @@ export function PendingWithdrawals({}: PendingWithdrawalsProps) {
               <TableBody>
                 {processed.map((req) => (
                   <TableRow key={req.id}>
-                    <TableCell>{req.userId}</TableCell>
+                    <TableCell>{req.username}</TableCell>
                     <TableCell>₹{req.amount.toFixed(2)}</TableCell>
                     <TableCell>
                         <Badge variant={req.status === 'approved' ? 'default' : 'destructive'} 
