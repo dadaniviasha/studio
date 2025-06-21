@@ -130,19 +130,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateBalance = useCallback(async (newBalance: number) => {
     if (currentUser) {
-      // Optimistic UI update
+      // Optimistic UI update for a responsive feel.
+      // The user's balance will appear to change, but it won't be saved to the database from here.
       setCurrentUser(prevUser => prevUser ? { ...prevUser, walletBalance: newBalance } : null);
-      
-      // Persist the new balance in Firestore
-      try {
-        await updateUserBalanceInDb(currentUser.id, newBalance);
-      } catch (error) {
-        console.error("Failed to update balance in Firestore:", error);
-        // Optional: Revert UI change and show error
-        toast({ title: "Sync Error", description: "Failed to save new balance. Please refresh.", variant: "destructive" });
-      }
+
+      // IMPORTANT: In a production app, the client should NEVER set its own balance.
+      // Instead of calling updateUserBalanceInDb, you would call a secure Firebase Cloud Function
+      // that validates the transaction (e.g., a bet or a win) and updates the balance on the server.
+      // The direct database call from the client has been removed to enforce security.
+      console.log("Client-side balance updated for UI. A secure backend function would be needed to persist this change.");
     }
-  }, [currentUser, toast]);
+  }, [currentUser]);
 
 
   return (
