@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { DollarSign, ArrowDownCircle, ArrowUpCircle, WalletCards, AlertTriangle, History, ArrowDown, ArrowUp, Trophy, Gift, ArrowRightLeft, Wallet } from 'lucide-react';
+import { DollarSign, ArrowDownCircle, ArrowUpCircle, WalletCards, AlertTriangle, History, ArrowDown, ArrowUp, Trophy, Gift, ArrowRightLeft, Wallet, Upload, FileCheck2 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { MIN_WITHDRAWAL_AMOUNT, MIN_DEPOSIT_AMOUNT } from '@/lib/constants';
 import { useAuth } from '@/contexts/AuthContext';
@@ -52,6 +52,7 @@ export default function WalletPage() {
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState('');
   const [isMobile, setIsMobile] = useState(false);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const { toast } = useToast();
 
   const currentBalance = currentUser ? currentUser.walletBalance : 0;
@@ -92,6 +93,14 @@ useEffect(() => {
     }
   }, [depositAmount]);
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+        setSelectedFile(e.target.files[0]);
+    } else {
+        setSelectedFile(null);
+    }
+  };
+  
   const handleDeposit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser) {
@@ -104,12 +113,18 @@ useEffect(() => {
       return;
     }
     
-    // In a real app, this would create a 'pending deposit' record for an admin to approve.
+    if (!selectedFile) {
+      toast({ title: "Screenshot Required", description: "Please upload a payment screenshot to confirm your deposit.", variant: "destructive" });
+      return;
+    }
+    
+    // In a real app, this would upload the file and create a 'pending deposit' record for an admin to approve.
     // For this simulation, we'll just show a confirmation message.
     setDepositAmount('');
+    setSelectedFile(null); // Reset file input
     toast({ 
       title: "Deposit Awaiting Confirmation", 
-      description: `Your deposit of ₹${amount.toFixed(2)} is being processed. An admin will update your balance shortly after confirming payment.`,
+      description: `Your deposit of ₹${amount.toFixed(2)} with screenshot '${selectedFile.name}' is being processed. An admin will update your balance shortly after confirming payment.`,
       duration: 8000
     });
   };
@@ -215,7 +230,7 @@ useEffect(() => {
               <CardTitle className="flex items-center text-xl font-headline text-green-500">
                 <ArrowDownCircle className="mr-2 h-6 w-6" /> Deposit Funds
               </CardTitle>
-              <CardDescription>Enter an amount, then scan the QR code to pay.</CardDescription>
+              <CardDescription>Enter amount, scan QR, then upload screenshot.</CardDescription>
             </CardHeader>
             <form onSubmit={handleDeposit}>
               <CardContent className="space-y-6">
@@ -254,6 +269,37 @@ useEffect(() => {
                         </div>
                     </div>
                 </div>
+                 <div className="space-y-2">
+                    <Label>3. Upload Payment Screenshot</Label>
+                    <div className="mt-1">
+                        <Input
+                            id="screenshot"
+                            type="file"
+                            accept="image/*"
+                            onChange={handleFileChange}
+                            className="hidden"
+                        />
+                        <Label
+                            htmlFor="screenshot"
+                            className={cn(
+                                "flex h-12 w-full items-center justify-center rounded-md border-2 border-dashed border-input cursor-pointer bg-transparent px-3 py-2 text-sm text-muted-foreground hover:bg-accent/10 hover:border-accent",
+                                selectedFile && "border-green-500"
+                            )}
+                        >
+                            {selectedFile ? (
+                                <span className="flex items-center gap-2 text-green-500 font-medium">
+                                    <FileCheck2 className="h-5 w-5" />
+                                    {selectedFile.name}
+                                </span>
+                            ) : (
+                                <span className="flex items-center gap-2">
+                                    <Upload className="h-5 w-5" />
+                                    Select Screenshot
+                                </span>
+                            )}
+                        </Label>
+                    </div>
+                </div>
               </CardContent>
               <CardFooter className="flex-col gap-3">
                 {qrCodeDataUrl && isMobile && (
@@ -263,8 +309,12 @@ useEffect(() => {
                     </Button>
                    </a>
                 )}
-                <Button type="submit" className="w-full h-12 bg-green-500 hover:bg-green-600 text-white">
-                  3. I Have Paid
+                <Button 
+                    type="submit" 
+                    className="w-full h-12 bg-green-500 hover:bg-green-600 text-white"
+                    disabled={!selectedFile || !depositAmount || parseFloat(depositAmount) < MIN_DEPOSIT_AMOUNT}
+                >
+                  Confirm Deposit
                 </Button>
               </CardFooter>
             </form>
