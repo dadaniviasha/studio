@@ -13,7 +13,18 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
+// --- Start of Debugging Logs ---
+console.log("--- Firebase Config Check ---");
+console.log("API Key found in environment:", !!firebaseConfig.apiKey);
+console.log("Project ID found in environment:", !!firebaseConfig.projectId);
+// --- End of Debugging Logs ---
+
 export const FBCONFIG_MISSING = !firebaseConfig.apiKey || !firebaseConfig.projectId;
+
+if (FBCONFIG_MISSING) {
+  console.error("CRITICAL: FIREBASE CONFIG IS MISSING. Verify your .env.local file and restart the server.");
+}
+
 
 // Initialize Firebase
 const app: FirebaseApp | null = FBCONFIG_MISSING ? null : !getApps().length ? initializeApp(firebaseConfig) : getApp();
