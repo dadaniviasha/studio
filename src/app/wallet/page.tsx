@@ -84,9 +84,14 @@ export default function WalletPage() {
       return;
     }
     
-    updateBalance(currentBalance + amount);
+    // In a real app, this would create a 'pending deposit' record for an admin to approve.
+    // For this simulation, we'll just show a confirmation message.
     setDepositAmount('');
-    toast({ title: "Deposit Successful", description: `₹${amount.toFixed(2)} has been added to your wallet.` });
+    toast({ 
+      title: "Deposit Awaiting Confirmation", 
+      description: `Your deposit of ₹${amount.toFixed(2)} is being processed. An admin will update your balance shortly after confirming payment.`,
+      duration: 8000
+    });
   };
 
   const handleWithdrawal = (e: React.FormEvent) => {
@@ -164,13 +169,13 @@ export default function WalletPage() {
               <CardTitle className="flex items-center text-xl font-headline text-green-500">
                 <ArrowDownCircle className="mr-2 h-6 w-6" /> Deposit Funds
               </CardTitle>
-              <CardDescription>Add money to your wallet.</CardDescription>
+              <CardDescription>Scan the QR and enter the amount, then click "I Have Paid".</CardDescription>
             </CardHeader>
             <form onSubmit={handleDeposit}>
               <CardContent className="space-y-4">
                  <div className="flex flex-col items-center gap-4 p-4 rounded-lg bg-background/50">
                     <p className="text-sm text-center text-muted-foreground">
-                      Scan the QR code below to add funds.
+                      1. Scan the QR code to pay with your UPI app.
                     </p>
                     <img
                       src={qrCodeUrl}
@@ -181,7 +186,7 @@ export default function WalletPage() {
                     />
                   </div>
                 <div>
-                  <Label htmlFor="depositAmount">Or Enter Amount (₹)</Label>
+                  <Label htmlFor="depositAmount">2. Enter Amount (₹)</Label>
                   <div className="relative mt-1">
                     <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                     <Input
@@ -198,7 +203,7 @@ export default function WalletPage() {
               </CardContent>
               <CardFooter>
                 <Button type="submit" className="w-full h-12 bg-green-500 hover:bg-green-600 text-white">
-                  Confirm Deposit
+                  I Have Paid
                 </Button>
               </CardFooter>
             </form>
@@ -297,5 +302,3 @@ export default function WalletPage() {
     </div>
   );
 }
-
-    
