@@ -61,6 +61,7 @@ export interface DepositRequest {
   email: string;
   amount: number;
   screenshotFilename: string;
+  screenshotDataUrl: string;
   requestedAt: number;
   status: "pending" | "approved" | "rejected";
   processedAt?: number;

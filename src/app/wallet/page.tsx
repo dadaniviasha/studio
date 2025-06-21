@@ -80,7 +80,7 @@ export default function WalletPage() {
     }
   };
   
-  const handleDeposit = (e: React.FormEvent) => {
+  const handleDeposit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser) {
       toast({ title: "Login Required", description: "Please log in to deposit funds.", variant: "destructive" });
@@ -96,8 +96,18 @@ export default function WalletPage() {
       toast({ title: "Screenshot Required", description: "Please upload a payment screenshot to confirm your deposit.", variant: "destructive" });
       return;
     }
+
+    const fileToDataUrl = (file: File): Promise<string> => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = error => reject(error);
+            reader.readAsDataURL(file);
+        });
+    };
     
     try {
+      const screenshotDataUrl = await fileToDataUrl(selectedFile);
       const existingRequestsString = localStorage.getItem(DEPOSIT_REQUESTS_STORAGE_KEY);
       const existingRequests: DepositRequest[] = existingRequestsString ? JSON.parse(existingRequestsString) : [];
       
@@ -108,6 +118,7 @@ export default function WalletPage() {
         email: currentUser.email,
         amount: amount,
         screenshotFilename: selectedFile.name,
+        screenshotDataUrl: screenshotDataUrl,
         requestedAt: Date.now(),
         status: 'pending',
       };
@@ -119,13 +130,13 @@ export default function WalletPage() {
       setSelectedFile(null); // Reset file input
       toast({ 
         title: "Deposit Awaiting Confirmation", 
-        description: `Your deposit of ₹${amount.toFixed(2)} with screenshot '${selectedFile.name}' is being processed. An admin will update your balance shortly after confirming payment.`,
+        description: `Your deposit of ₹${amount.toFixed(2)} is being processed. An admin will review your screenshot shortly.`,
         duration: 8000
       });
 
     } catch (error) {
        console.error("Failed to save deposit request:", error);
-       toast({ title: "Request Failed", description: "Could not save your deposit request. Please try again.", variant: "destructive" });
+       toast({ title: "Request Failed", description: "Could not read the file or save your deposit request. Please try again.", variant: "destructive" });
     }
   };
 

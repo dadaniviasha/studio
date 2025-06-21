@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, XCircle, FileImage, Download } from 'lucide-react';
+import { CheckCircle, XCircle, FileImage, Download, Eye } from 'lucide-react';
 import type { DepositRequest } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 
@@ -91,7 +91,7 @@ export function PendingDeposits() {
                 <TableRow>
                   <TableHead>User</TableHead>
                   <TableHead>Amount (₹)</TableHead>
-                  <TableHead>Screenshot</TableHead>
+                  <TableHead>Date</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -103,13 +103,18 @@ export function PendingDeposits() {
                       <div className="text-xs text-muted-foreground">{req.email}</div>
                     </TableCell>
                     <TableCell>₹{req.amount.toFixed(2)}</TableCell>
-                    <TableCell>
-                      <Badge variant="secondary" className="flex items-center gap-1.5 cursor-default" title={req.screenshotFilename}>
-                        <FileImage className="h-3 w-3" />
-                        <span className="truncate max-w-[100px]">{req.screenshotFilename}</span>
-                      </Badge>
+                     <TableCell className="text-xs text-muted-foreground">
+                      {new Date(req.requestedAt).toLocaleString()}
                     </TableCell>
                     <TableCell className="text-right space-x-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => window.open(req.screenshotDataUrl, '_blank')} 
+                        title={req.screenshotFilename}
+                      >
+                        <Eye className="mr-1 h-4 w-4" /> View Proof
+                      </Button>
                       <Button variant="ghost" size="sm" className="text-green-500 hover:bg-green-500/10" onClick={() => handleProcessRequest(req, 'approved')} title="Mark as Approved">
                         <CheckCircle className="mr-1 h-4 w-4" /> Approve
                       </Button>
