@@ -46,6 +46,7 @@ export interface WithdrawalRequest {
   userId: string;
   username: string;
   email: string;
+  upiId: string;
   amount: number;
   requestedAt: number;
   status: "pending" | "approved" | "rejected";

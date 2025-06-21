@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { DollarSign, ArrowDownCircle, ArrowUpCircle, WalletCards, AlertTriangle, History, ArrowDown, ArrowUp, Trophy, Gift, ArrowRightLeft } from 'lucide-react';
+import { DollarSign, ArrowDownCircle, ArrowUpCircle, WalletCards, AlertTriangle, History, ArrowDown, ArrowUp, Trophy, Gift, ArrowRightLeft, Wallet } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { MIN_WITHDRAWAL_AMOUNT, MIN_DEPOSIT_AMOUNT } from '@/lib/constants';
 import { useAuth } from '@/contexts/AuthContext';
@@ -19,6 +19,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
+import QRCode from 'qrcode';
 
 const WITHDRAWAL_REQUESTS_STORAGE_KEY = 'CROTOS_WITHDRAWAL_REQUESTS';
 
@@ -47,12 +48,16 @@ export default function WalletPage() {
   const { currentUser, updateBalance, loading: authLoading } = useAuth();
   const [depositAmount, setDepositAmount] = useState('');
   const [withdrawalAmount, setWithdrawalAmount] = useState('');
+  const [upiId, setUpiId] = useState('');
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState('');
+  const [isMobile, setIsMobile] = useState(false);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const { toast } = useToast();
 
   const currentBalance = currentUser ? currentUser.walletBalance : 0;
   
   useEffect(() => {
+    setIsMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
     // In a real app, you would fetch this from your backend/database
     if (currentUser) {
         const dummyTransactions: WalletTransaction[] = [
@@ -68,6 +73,24 @@ export default function WalletPage() {
         setTransactions(dummyTransactions);
     }
 }, [currentUser]);
+
+useEffect(() => {
+    const amount = parseFloat(depositAmount);
+    if (!isNaN(amount) && amount >= MIN_DEPOSIT_AMOUNT) {
+      // In a real app, you'd include recipient UPI and other details
+      const upiUrl = `upi://pay?pa=recipient@upi&pn=Crotos&am=${amount.toFixed(2)}&cu=INR&tn=Deposit for Crotos`;
+      QRCode.toDataURL(upiUrl)
+        .then(url => {
+          setQrCodeDataUrl(url);
+        })
+        .catch(err => {
+          console.error("Failed to generate QR code:", err);
+          setQrCodeDataUrl('');
+        });
+    } else {
+      setQrCodeDataUrl('');
+    }
+  }, [depositAmount]);
 
   const handleDeposit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -106,6 +129,10 @@ export default function WalletPage() {
       toast({ title: "Insufficient Balance", description: "You don't have enough funds to withdraw this amount.", variant: "destructive" });
       return;
     }
+    if (!upiId.trim() || !upiId.includes('@')) {
+        toast({ title: "Invalid UPI ID", description: "Please enter a valid UPI ID (e.g., yourname@bank).", variant: "destructive" });
+        return;
+    }
 
     try {
       const existingRequestsString = localStorage.getItem(WITHDRAWAL_REQUESTS_STORAGE_KEY);
@@ -116,6 +143,7 @@ export default function WalletPage() {
         userId: currentUser.id,
         username: currentUser.username,
         email: currentUser.email,
+        upiId: upiId.trim(),
         amount: amount,
         requestedAt: Date.now(),
         status: 'pending',
@@ -125,6 +153,7 @@ export default function WalletPage() {
       localStorage.setItem(WITHDRAWAL_REQUESTS_STORAGE_KEY, JSON.stringify(updatedRequests));
 
       setWithdrawalAmount('');
+      setUpiId('');
       toast({ title: "Withdrawal Requested", description: `Your request to withdraw ₹${amount.toFixed(2)} is pending approval.` });
     } catch (error) {
        console.error("Failed to save withdrawal request:", error);
@@ -209,19 +238,31 @@ export default function WalletPage() {
                     <Label>2. Scan QR to Pay</Label>
                     <div className="flex flex-col items-center justify-center p-4 rounded-lg bg-background/50 border">
                         <div className="bg-white p-2 rounded-lg w-[266px] h-[266px] flex items-center justify-center shadow-md">
-                            <Image
-                                src="https://placehold.co/250x250.png"
-                                alt="UPI Payment QR Code Scanner"
-                                data-ai-hint="qr code"
-                                width={250}
-                                height={250}
-                                className="rounded-sm"
-                            />
+                            {qrCodeDataUrl ? (
+                                <Image
+                                    src={qrCodeDataUrl}
+                                    alt="UPI Payment QR Code"
+                                    width={250}
+                                    height={250}
+                                    className="rounded-sm"
+                                />
+                            ) : (
+                                <div className="w-[250px] h-[250px] flex items-center justify-center text-center text-muted-foreground p-4">
+                                    Enter a valid deposit amount to generate a QR code.
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
               </CardContent>
-              <CardFooter>
+              <CardFooter className="flex-col gap-3">
+                {qrCodeDataUrl && isMobile && (
+                   <a href={`upi://pay?pa=recipient@upi&pn=Crotos&am=${depositAmount}&cu=INR`} className="w-full">
+                    <Button type="button" className="w-full h-12 bg-primary/90 hover:bg-primary text-white">
+                        Pay with UPI App
+                    </Button>
+                   </a>
+                )}
                 <Button type="submit" className="w-full h-12 bg-green-500 hover:bg-green-600 text-white">
                   3. I Have Paid
                 </Button>
@@ -234,7 +275,7 @@ export default function WalletPage() {
               <CardTitle className="flex items-center text-xl font-headline text-red-500">
                 <ArrowUpCircle className="mr-2 h-6 w-6" /> Withdraw Funds
               </CardTitle>
-              <CardDescription>Request a withdrawal.</CardDescription>
+              <CardDescription>Request a withdrawal to your UPI ID.</CardDescription>
             </CardHeader>
             <form onSubmit={handleWithdrawal}>
               <CardContent className="space-y-4">
@@ -250,6 +291,21 @@ export default function WalletPage() {
                       placeholder={`Min ₹${MIN_WITHDRAWAL_AMOUNT}`}
                       className="pl-10 h-12"
                       min={MIN_WITHDRAWAL_AMOUNT.toString()}
+                    />
+                  </div>
+                </div>
+                 <div>
+                  <Label htmlFor="upiId">Your UPI ID</Label>
+                   <div className="relative mt-1">
+                    <Wallet className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    <Input
+                      id="upiId"
+                      type="text"
+                      value={upiId}
+                      onChange={(e) => setUpiId(e.target.value)}
+                      placeholder="yourname@bank"
+                      className="pl-10 h-12"
+                      required
                     />
                   </div>
                 </div>

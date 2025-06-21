@@ -76,7 +76,7 @@ export function PendingWithdrawals() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>User</TableHead>
+                  <TableHead>User & UPI</TableHead>
                   <TableHead>Amount (₹)</TableHead>
                   <TableHead>Requested At</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -88,6 +88,7 @@ export function PendingWithdrawals() {
                     <TableCell>
                       <div className="font-medium">{req.username}</div>
                       <div className="text-xs text-muted-foreground">{req.email}</div>
+                      <div className="text-xs font-mono text-primary">{req.upiId}</div>
                     </TableCell>
                     <TableCell>₹{req.amount.toFixed(2)}</TableCell>
                     <TableCell>{new Date(req.requestedAt).toLocaleString()}</TableCell>
@@ -114,7 +115,7 @@ export function PendingWithdrawals() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Username</TableHead>
+                  <TableHead>User & UPI</TableHead>
                   <TableHead>Amount (₹)</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Processed At</TableHead>
@@ -123,7 +124,10 @@ export function PendingWithdrawals() {
               <TableBody>
                 {processed.map((req) => (
                   <TableRow key={req.id}>
-                    <TableCell>{req.username}</TableCell>
+                    <TableCell>
+                      <div className="font-medium">{req.username}</div>
+                      <div className="text-xs font-mono text-primary">{req.upiId}</div>
+                    </TableCell>
                     <TableCell>₹{req.amount.toFixed(2)}</TableCell>
                     <TableCell>
                         <Badge variant={req.status === 'approved' ? 'default' : 'destructive'} 
