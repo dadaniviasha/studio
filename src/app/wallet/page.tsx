@@ -169,11 +169,10 @@ export default function WalletPage() {
                     Scan the QR code below to add funds.
                   </p>
                   <Image
-                    src="https://placehold.co/250x250.png"
+                    src="/scanner.png"
                     alt="Payment QR Code"
                     width={250}
                     height={250}
-                    data-ai-hint="payment qrcode"
                     className="rounded-lg"
                   />
                 </div>
