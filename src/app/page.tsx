@@ -18,9 +18,6 @@ import { AlertCircle, Info, Gift } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 
-// Dummy data and simulation logic
-const initialBets: BetType[] = [];
-
 // Placeholder sound data URIs (silent WAV)
 const SILENT_SOUND_PLACEHOLDER = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAVAAAAHYAAABACAA';
 
@@ -28,6 +25,19 @@ const GUEST_USER_ID = "guest_user";
 const GUEST_INITIAL_BALANCE = 200; // Give guests some play money
 const ADMIN_RESULT_STORAGE_KEY = 'CROTOS_ADMIN_RESULT_OVERRIDE';
 const ROUND_ID_STORAGE_KEY = 'CROTOS_CURRENT_ROUND_ID';
+const ACTIVE_BETS_STORAGE_KEY = 'CROTOS_ACTIVE_BETS';
+
+const getInitialActiveBets = (): BetType[] => {
+    if (typeof window === 'undefined') return [];
+    try {
+        const storedBets = localStorage.getItem(ACTIVE_BETS_STORAGE_KEY);
+        return storedBets ? JSON.parse(storedBets) : [];
+    } catch (error) {
+        console.error("Could not load active bets from localStorage:", error);
+        localStorage.removeItem(ACTIVE_BETS_STORAGE_KEY); // Clear corrupted data
+        return [];
+    }
+};
 
 
 export default function HomePage() {
@@ -35,7 +45,7 @@ export default function HomePage() {
   const [currentResult, setCurrentResult] = useState<GameResult | null>(null);
   const [resultHistory, setResultHistory] = useState<GameResult[]>([]);
   const [isBettingPhase, setIsBettingPhase] = useState(true);
-  const [activeBets, setActiveBets] = useState<BetType[]>(initialBets);
+  const [activeBets, setActiveBets] = useState<BetType[]>(getInitialActiveBets);
   
   const [currentDisplayedBalance, setCurrentDisplayedBalance] = useState<number>(GUEST_INITIAL_BALANCE);
   
@@ -84,6 +94,16 @@ export default function HomePage() {
   useEffect(() => {
     localStorage.setItem(ROUND_ID_STORAGE_KEY, round.id);
   }, [round.id]);
+
+  // This effect syncs the active bets to localStorage whenever they change.
+  // This allows other components/pages (like the admin panel) to view them.
+  useEffect(() => {
+    try {
+      localStorage.setItem(ACTIVE_BETS_STORAGE_KEY, JSON.stringify(activeBets));
+    } catch (error) {
+      console.error("Could not save active bets to localStorage:", error);
+    }
+  }, [activeBets]);
 
 
   useEffect(() => {
@@ -454,5 +474,6 @@ export default function HomePage() {
     
 
     
+
 
 
