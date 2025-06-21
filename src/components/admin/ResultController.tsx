@@ -35,11 +35,9 @@ export function ResultController({ onSetResult }: ResultControllerProps) {
       };
 
       onSetResult(resultToSet);
-      toast({ title: "Manual Result Set", description: `The next round will be Number: ${resultToSet.winningNumber}, Color: ${resultToSet.winningColor}.` });
       
     } else { // mode === 'random'
         onSetResult(null); // Signal to clear any existing override
-        toast({ title: "Result Set to Random", description: "The next round will have a random outcome." });
     }
   };
 

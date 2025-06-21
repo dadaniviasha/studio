@@ -26,11 +26,12 @@ export default function AdminPage() {
       if (result === null) {
         // If null is passed, clear any existing override.
         localStorage.removeItem(ADMIN_RESULT_STORAGE_KEY);
-        // Toast is now handled in the controller.
+        toast({ title: "Result Set to Random", description: "The next round will have a random outcome." });
         return;
       }
 
-      if (result.winningNumber === undefined || result.winningColor === undefined) {
+      // This validation should be handled by the controller, but we double-check here.
+      if (result.winningNumber === undefined || !result.winningColor) {
         console.error("Admin attempted to set an incomplete result:", result);
         toast({
           title: "Error: Incomplete Result Data",
@@ -45,7 +46,7 @@ export default function AdminPage() {
         winningColor: result.winningColor,
       };
       localStorage.setItem(ADMIN_RESULT_STORAGE_KEY, JSON.stringify(resultToStore));
-      // Toast notification is now handled within the ResultController component itself.
+      toast({ title: "Manual Result Set", description: `The next round will be Number: ${result.winningNumber}, Color: ${result.winningColor}.` });
     } catch (error) {
       console.error("Error saving admin result to localStorage:", error);
       toast({
