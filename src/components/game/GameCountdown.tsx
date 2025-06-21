@@ -5,37 +5,46 @@ import { useState, useEffect } from 'react';
 import { TimerIcon } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { GAME_ROUND_DURATION_SECONDS } from '@/lib/constants';
 
 interface GameCountdownProps {
   onTimerEnd: () => void;
   isProcessing?: boolean;
   roundId: string | number; 
+  endTime: number; // The absolute timestamp when the round ends
 }
 
-export function GameCountdown({ onTimerEnd, isProcessing = false, roundId }: GameCountdownProps) {
-  const [timeLeft, setTimeLeft] = useState(GAME_ROUND_DURATION_SECONDS);
+const calculateTimeLeft = (endTime: number) => {
+    const now = Date.now();
+    const timeLeft = Math.round((endTime - now) / 1000);
+    return Math.max(0, timeLeft);
+};
+
+export function GameCountdown({ onTimerEnd, isProcessing = false, roundId, endTime }: GameCountdownProps) {
+  const [timeLeft, setTimeLeft] = useState(() => calculateTimeLeft(endTime));
+
+  const totalDuration = (endTime - (endTime - 30 * 1000)) / 1000; // Recalculate duration based on endTime
 
   useEffect(() => {
-    setTimeLeft(GAME_ROUND_DURATION_SECONDS); // Reset timer when roundId changes or processing state changes
+    setTimeLeft(calculateTimeLeft(endTime)); // Initialize timer with correct value
+    
     if (isProcessing) return;
 
     const timer = setInterval(() => {
-      setTimeLeft((prevTime) => {
-        if (prevTime <= 1) {
+      setTimeLeft(prevTime => {
+        const newTimeLeft = calculateTimeLeft(endTime);
+        if (newTimeLeft <= 0) {
           clearInterval(timer);
-          // Schedule onTimerEnd to run after the current update cycle
-          setTimeout(() => onTimerEnd(), 0); 
+          onTimerEnd();
           return 0;
         }
-        return prevTime - 1;
+        return newTimeLeft;
       });
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [onTimerEnd, isProcessing, roundId]);
+  }, [onTimerEnd, isProcessing, roundId, endTime]);
 
-  const progressPercentage = (timeLeft / GAME_ROUND_DURATION_SECONDS) * 100;
+  const progressPercentage = (timeLeft / totalDuration) * 100;
 
   return (
     <Card className="shadow-xl bg-card/80 backdrop-blur-sm">

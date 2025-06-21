@@ -24,8 +24,9 @@ const SILENT_SOUND_PLACEHOLDER = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAA
 const GUEST_USER_ID = "guest_user";
 const GUEST_INITIAL_BALANCE = 200; // Give guests some play money
 const ADMIN_RESULT_STORAGE_KEY = 'CROTOS_ADMIN_RESULT_OVERRIDE';
-const ROUND_ID_STORAGE_KEY = 'CROTOS_CURRENT_ROUND_ID';
+const ROUND_ID_STORAGE_KEY = 'CROTOS_CURRENT_ROUND_ID'; // Kept for admin panel compatibility
 const ACTIVE_BETS_STORAGE_KEY = 'CROTOS_ACTIVE_BETS';
+const ROUND_STORAGE_KEY = 'CROTOS_CURRENT_ROUND';
 
 const getInitialActiveBets = (): BetType[] => {
     if (typeof window === 'undefined') return [];
@@ -37,6 +38,42 @@ const getInitialActiveBets = (): BetType[] => {
         localStorage.removeItem(ACTIVE_BETS_STORAGE_KEY); // Clear corrupted data
         return [];
     }
+};
+
+const getInitialRound = (): GameRound => {
+    if (typeof window === 'undefined') {
+        // Return a default round for server-side rendering
+        return {
+            id: '1',
+            startTime: Date.now(),
+            endTime: Date.now() + GAME_ROUND_DURATION_SECONDS * 1000,
+            status: 'betting'
+        };
+    }
+    try {
+        const storedRoundJSON = localStorage.getItem(ROUND_STORAGE_KEY);
+        if (storedRoundJSON) {
+            const storedRound: GameRound = JSON.parse(storedRoundJSON);
+            // Check if the stored round is still valid (its end time is in the future)
+            if (storedRound.endTime > Date.now()) {
+                return storedRound;
+            }
+        }
+    } catch (error) {
+        console.error("Failed to load round from localStorage", error);
+        localStorage.removeItem(ROUND_STORAGE_KEY); // Clear potentially corrupted data
+    }
+
+    // If no valid round in storage, create a new one.
+    const newRound: GameRound = {
+        // Using a timestamp-based ID is more robust across sessions than a simple counter.
+        id: `r_${Math.floor(Date.now() / 1000)}`,
+        startTime: Date.now(),
+        endTime: Date.now() + GAME_ROUND_DURATION_SECONDS * 1000,
+        status: 'betting'
+    };
+    localStorage.setItem(ROUND_STORAGE_KEY, JSON.stringify(newRound));
+    return newRound;
 };
 
 
@@ -60,15 +97,9 @@ export default function HomePage() {
     currentDisplayedBalanceRef.current = currentDisplayedBalance;
   }, [currentDisplayedBalance]);
 
-  const roundIdCounterRef = useRef(1);
   const processingEndRef = useRef(false); // Ref to prevent duplicate round end processing
 
-  const [round, setRound] = useState<GameRound>({
-    id: roundIdCounterRef.current.toString(),
-    startTime: Date.now(),
-    endTime: Date.now() + GAME_ROUND_DURATION_SECONDS * 1000, 
-    status: 'betting'
-  });
+  const [round, setRound] = useState<GameRound>(getInitialRound);
   const { toast } = useToast();
 
   const roundRef = useRef(round);
@@ -90,10 +121,17 @@ export default function HomePage() {
     }
   }, [currentUser, authLoading]);
 
-  // Save the current round ID to local storage so the admin panel can see it.
+  // This effect syncs the entire round object to localStorage whenever it changes.
+  // This makes the timer persistent across page navigations.
   useEffect(() => {
-    localStorage.setItem(ROUND_ID_STORAGE_KEY, round.id);
-  }, [round.id]);
+    try {
+      localStorage.setItem(ROUND_STORAGE_KEY, JSON.stringify(round));
+      // For compatibility with the admin panel, also set the simple ID key
+      localStorage.setItem(ROUND_ID_STORAGE_KEY, round.id);
+    } catch (error) {
+      console.error("Could not save round state to localStorage:", error);
+    }
+  }, [round]);
 
   // This effect syncs the active bets to localStorage whenever they change.
   // This allows other components/pages (like the admin panel) to view them.
@@ -248,9 +286,9 @@ export default function HomePage() {
       }
 
       setTimeout(() => {
-        roundIdCounterRef.current++;
+        const newRoundId = `r_${Math.floor(Date.now() / 1000)}`;
         setRound({
-          id: roundIdCounterRef.current.toString(),
+          id: newRoundId,
           startTime: Date.now(),
           endTime: Date.now() + GAME_ROUND_DURATION_SECONDS * 1000,
           status: 'betting'
@@ -338,7 +376,12 @@ export default function HomePage() {
       <main className="flex-grow container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 items-start">
           <div className="lg:col-span-2 space-y-6 lg:space-y-8">
-            <GameCountdown onTimerEnd={processRoundEnd} isProcessing={!isBettingPhase} roundId={round.id} />
+            <GameCountdown 
+                onTimerEnd={processRoundEnd} 
+                isProcessing={!isBettingPhase} 
+                roundId={round.id} 
+                endTime={round.endTime} 
+            />
             <BettingArea 
               onBetPlaced={handleBetPlaced} 
               disabled={!isBettingPhase || (authLoading)} 
@@ -458,11 +501,3 @@ export default function HomePage() {
       <AppFooter />
     </div>
   );
-
-    
-
-    
-
-
-
-
