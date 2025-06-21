@@ -174,7 +174,7 @@ export default function WalletPage() {
                     </p>
                     <div className="bg-white p-2 rounded-lg">
                        <Image
-                        src="/images/scanner.png"
+                        src="https://placehold.co/250x250.png"
                         alt="Your Payment QR Code Scanner"
                         width={250}
                         height={250}
@@ -183,7 +183,7 @@ export default function WalletPage() {
                       />
                     </div>
                      <p className="text-xs text-muted-foreground text-center">
-                      Your QR code should appear here. If not, ensure a file named `scanner.png` is in the `public/images` folder and restart the server.
+                      Your QR code should appear here. This is a placeholder.
                     </p>
                   </div>
                 <div>
@@ -303,3 +303,5 @@ export default function WalletPage() {
     </div>
   );
 }
+
+    
