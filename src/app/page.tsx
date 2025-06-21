@@ -25,6 +25,7 @@ const SILENT_SOUND_PLACEHOLDER = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAA
 const GUEST_USER_ID = "guest_user";
 const GUEST_INITIAL_BALANCE = 200; // Give guests some play money
 const ADMIN_RESULT_STORAGE_KEY = 'CROTOS_ADMIN_RESULT_OVERRIDE';
+const ROUND_ID_STORAGE_KEY = 'CROTOS_CURRENT_ROUND_ID';
 
 
 export default function HomePage() {
@@ -71,6 +72,11 @@ export default function HomePage() {
       }
     }
   }, [currentUser, authLoading]);
+
+  // Save the current round ID to local storage so the admin panel can see it.
+  useEffect(() => {
+    localStorage.setItem(ROUND_ID_STORAGE_KEY, round.id);
+  }, [round.id]);
 
 
   useEffect(() => {

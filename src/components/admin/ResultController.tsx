@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -12,18 +12,43 @@ import { useToast } from "@/hooks/use-toast";
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 const ADMIN_RESULT_STORAGE_KEY = 'CROTOS_ADMIN_RESULT_OVERRIDE';
+const ROUND_ID_STORAGE_KEY = 'CROTOS_CURRENT_ROUND_ID';
 
 export function ResultController() {
   const [mode, setMode] = useState<'random' | 'manual'>('random');
-  // Use strings for state to simplify interaction with Select components
   const [manualColor, setManualColor] = useState<string>('');
   const [manualNumber, setManualNumber] = useState<string>('');
+  const [activeRoundId, setActiveRoundId] = useState<string | null>(null);
   const { toast } = useToast();
+
+  // This effect will read the active round ID from localStorage and listen for changes.
+  useEffect(() => {
+    const updateRoundId = () => {
+      const currentRoundId = localStorage.getItem(ROUND_ID_STORAGE_KEY);
+      setActiveRoundId(currentRoundId);
+    }
+    
+    // Read the value on initial component mount
+    updateRoundId();
+
+    // Set up a listener for the 'storage' event to sync across tabs
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === ROUND_ID_STORAGE_KEY) {
+        setActiveRoundId(event.newValue);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    // Clean up the event listener when the component unmounts
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
 
   const handleSetResult = () => {
     try {
       if (mode === 'manual') {
-        // Simplified and more robust check
         if (!manualNumber || !manualColor) {
             toast({ title: "Invalid Selection", description: "Please select both a winning number and a winning color for manual override.", variant: "destructive" });
             return;
@@ -35,11 +60,14 @@ export function ResultController() {
         };
   
         localStorage.setItem(ADMIN_RESULT_STORAGE_KEY, JSON.stringify(resultToStore));
-        toast({ title: "Manual Result Set", description: `The next round will be Number: ${resultToStore.winningNumber}, Color: ${resultToStore.winningColor}.` });
+        toast({ 
+          title: "Manual Result Set", 
+          description: `The result for round #${activeRoundId || '...'} will be Number: ${resultToStore.winningNumber}, Color: ${resultToStore.winningColor}.` 
+        });
         
       } else { // mode === 'random'
           localStorage.removeItem(ADMIN_RESULT_STORAGE_KEY);
-          toast({ title: "Result Set to Random", description: "The next round will have a random outcome." });
+          toast({ title: "Result Set to Random", description: `The result for round #${activeRoundId || '...'} will be random.` });
       }
     } catch (error) {
       console.error("Error saving admin result to localStorage:", error);
@@ -50,6 +78,8 @@ export function ResultController() {
       });
     }
   };
+
+  const buttonText = `Apply For Round ${activeRoundId ? `#${activeRoundId}` : '...'}`;
 
   return (
     <Card className="shadow-xl bg-card/80 backdrop-blur-sm">
@@ -112,7 +142,7 @@ export function ResultController() {
         
         <Button onClick={handleSetResult} className="w-full h-12 text-lg bg-accent hover:bg-accent/90 text-accent-foreground">
           <Wand2 className="mr-2 h-5 w-5" />
-          Apply For Next Round
+          {buttonText}
         </Button>
       </CardContent>
     </Card>
