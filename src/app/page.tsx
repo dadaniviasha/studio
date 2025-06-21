@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import Link from 'next/link';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppFooter } from '@/components/layout/AppFooter';
 import { BettingArea } from '@/components/game/BettingArea';
@@ -10,11 +11,12 @@ import { GameCountdown } from '@/components/game/GameCountdown';
 import type { GameResult, Bet as BetType, GameRound, BetSubmission, ColorOption, NumberOption } from '@/lib/types';
 import { NUMBER_COLORS, PAYOUT_MULTIPLIERS, RESULT_PROCESSING_DURATION_SECONDS, GAME_ROUND_DURATION_SECONDS, MIN_BET_AMOUNT } from '@/lib/constants';
 import { useToast } from "@/hooks/use-toast";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { AlertCircle, Info, Gift } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
 
 // Dummy data and simulation logic
 const initialBets: BetType[] = [];
@@ -355,6 +357,30 @@ export default function HomePage() {
                     )}
                 </CardContent>
             </Card>
+             <Card className="shadow-xl bg-gradient-to-br from-accent to-primary text-accent-foreground">
+                <CardHeader>
+                    <CardTitle className="text-xl font-headline flex items-center">
+                        <Gift className="mr-2 h-6 w-6" /> Special Promotion
+                    </CardTitle>
+                    <CardDescription className="text-accent-foreground/80">
+                      Available for new players!
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <p>New to Crotos? Get a <strong className="font-bold">₹50 welcome bonus</strong> when you sign up to get started!</p>
+                </CardContent>
+                <CardFooter>
+                    {!currentUser ? (
+                      <Link href="/signup" className="w-full">
+                          <Button className="w-full bg-white/20 hover:bg-white/30 text-white font-bold backdrop-blur-sm">
+                            Sign Up & Claim Bonus
+                          </Button>
+                      </Link>
+                    ) : (
+                       <p className="text-xs text-accent-foreground/90">Welcome! Your bonus has been added to your wallet.</p>
+                    )}
+                </CardFooter>
+            </Card>
              <Card className="shadow-xl bg-card/80 backdrop-blur-sm">
                 <CardHeader>
                     <CardTitle className="text-xl font-headline text-primary flex items-center">
@@ -428,4 +454,5 @@ export default function HomePage() {
     
 
     
+
 
