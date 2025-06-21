@@ -17,7 +17,7 @@ import { AlertCircle, Info, Gift } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 // Dummy data and simulation logic
-let currentRoundId = Date.now();
+let currentRoundId = 1; // Start with Round 1
 const initialBets: BetType[] = [];
 
 // Placeholder sound data URIs (silent WAV)
@@ -207,7 +207,7 @@ export default function HomePage() {
       }
 
       setTimeout(() => {
-        currentRoundId = Date.now();
+        currentRoundId++; // Increment the counter for the next round
         setRound({
           id: currentRoundId.toString(),
           startTime: Date.now(),
