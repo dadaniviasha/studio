@@ -27,8 +27,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'dadaniviasha@gmail.com';
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -60,17 +58,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           let appUserDoc = await getUserDocument(firebaseUser.uid);
           
           if (!appUserDoc) {
-            // If user doc doesn't exist, create it.
+            // If user doc doesn't exist, create it. This will now set the isAdmin flag.
             await createUserDocument(firebaseUser); 
             appUserDoc = await getUserDocument(firebaseUser.uid);
           }
 
           if (appUserDoc) {
-            const userWithAdminStatus: User = {
-              ...appUserDoc,
-              isAdmin: firebaseUser.email === ADMIN_EMAIL,
-            };
-            setCurrentUser(userWithAdminStatus);
+            // The `isAdmin` property is now directly on the user document from Firestore.
+            // No need to manually add it here.
+            setCurrentUser(appUserDoc);
           } else {
              // This case is unlikely if creation is successful, but good to have a fallback.
              setCurrentUser(null);
@@ -106,9 +102,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, passwordAttempt);
-      const isAdmin = userCredential.user.email === ADMIN_EMAIL;
-      toast({ title: "Login Successful", description: `Welcome back, ${userCredential.user.displayName || 'user'}!` });
+      const userDoc = await getUserDocument(userCredential.user.uid);
+      const isAdmin = userDoc?.isAdmin || false; // Safely check the isAdmin property from the document
+
+      toast({ title: "Login Successful", description: `Welcome back, ${userDoc?.username || userCredential.user.displayName || 'user'}!` });
       router.push(isAdmin ? '/admin' : '/');
+
     } catch (error: any) {
       console.error("Firebase login error:", error);
       let description = "An unexpected error occurred. Please try again.";
@@ -132,6 +131,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const userCredential = await createUserWithEmailAndPassword(auth, email, passwordRaw);
       await updateProfile(userCredential.user, { displayName: username });
       // Create user document in Firestore, passing the explicit username.
+      // This function now also sets the `isAdmin` flag.
       await createUserDocument(userCredential.user, username);
 
       toast({ title: "Signup Successful", description: `Welcome, ${username}!` });

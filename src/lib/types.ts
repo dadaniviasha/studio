@@ -28,7 +28,7 @@ export interface User {
   username: string; // This will be the Firebase displayName
   email: string;
   walletBalance: number; // This would typically be stored in Firestore, not on the auth object
-  isAdmin?: boolean;
+  isAdmin: boolean; // This is now a permanent, non-optional flag from Firestore
 }
 
 export interface WalletTransaction {

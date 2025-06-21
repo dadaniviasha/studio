@@ -28,6 +28,8 @@ export async function createUserDocument(user: FirebaseUser, formUsername?: stri
     // Use the form username if provided, otherwise fall back to auth display name or a default.
     username: formUsername || user.displayName || "New User",
     walletBalance: SIGNUP_BONUS,
+    // Set the isAdmin flag based on the email at creation time. This is much more secure.
+    isAdmin: user.email === (process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'dadaniviasha@gmail.com'),
   };
   await setDoc(userRef, userData);
 }
