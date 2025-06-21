@@ -79,8 +79,7 @@ export default function WalletPage() {
       return;
     }
     
-    const newBalance = currentBalance + amount;
-    updateBalance(newBalance);
+    updateBalance(currentBalance + amount);
     setDepositAmount('');
     toast({ title: "Deposit Successful", description: `₹${amount.toFixed(2)} has been added to your wallet.` });
   };
@@ -101,6 +100,7 @@ export default function WalletPage() {
       return;
     }
 
+    // This is a simulation. In a real app, this would send a request to your backend.
     setWithdrawalAmount('');
     toast({ title: "Withdrawal Requested", description: `Your request to withdraw ₹${amount.toFixed(2)} is pending approval.` });
   };
@@ -303,3 +303,5 @@ export default function WalletPage() {
     </div>
   );
 }
+
+    
