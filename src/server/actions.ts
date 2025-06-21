@@ -157,13 +157,22 @@ export async function updateUserBalanceAction(userId: string, newBalance: number
     }
 }
 
-export async function approveDepositAction(userId: string, depositAmount: number): Promise<{ success: boolean; message: string; newBalance?: number }> {
+export async function approveDepositAction(adminId: string, userId: string, depositAmount: number): Promise<{ success: boolean; message: string; newBalance?: number }> {
     if (depositAmount <= 0) {
         return { success: false, message: "Deposit amount must be positive." };
     }
 
     try {
-        // This uses a 'get' operation, which is less restrictive than 'list'
+        // Step 1: Programmatically verify the user making the request is an admin.
+        const adminUser = await getUserDocument(adminId);
+        if (!adminUser || !adminUser.isAdmin) {
+            return { 
+                success: false, 
+                message: "Authorization Failed. Your account does not have privileges to approve deposits." 
+            };
+        }
+
+        // Step 2: Proceed with the original logic, now with an extra layer of security.
         const user = await getUserDocument(userId);
         if (!user) {
             return { success: false, message: `User with ID ${userId} not found.` };
@@ -177,10 +186,14 @@ export async function approveDepositAction(userId: string, depositAmount: number
         return { success: true, message: successMessage, newBalance };
     } catch (error: any) {
         console.error("Error approving deposit via server action:", error);
-        if (error.code === 'permission-denied' || error.code === 'unavailable') {
-             const specificMessage = "Permission Denied. This is a database security rule issue. Please verify two things: 1. You have published the latest security rules from PROPOSED_FIRESTORE_RULES.md. 2. Your own admin user document in the Firestore 'users' collection has a boolean field 'isAdmin' set to true.";
+        
+        // This catch block is still crucial for handling potential Firestore rule errors
+        // that might occur if the rules are misconfigured, even with the programmatic check.
+        if (error.code === 'permission-denied') {
+             const specificMessage = "Permission Denied by Database. Please ensure Firestore rules from PROPOSED_FIRESTORE_RULES.md are published and your admin account has the 'isAdmin: true' flag in the database.";
              return { success: false, message: specificMessage };
         }
+        
         return { success: false, message: "A server error occurred while approving the deposit." };
     }
 }

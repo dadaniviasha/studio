@@ -10,6 +10,7 @@ import { CheckCircle, XCircle, Download, Eye } from 'lucide-react';
 import type { DepositRequest } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { approveDepositAction } from '@/server/actions';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   Dialog,
   DialogContent,
@@ -24,6 +25,7 @@ export function PendingDeposits() {
   const [requests, setRequests] = useState<DepositRequest[]>([]);
   const [viewingImage, setViewingImage] = useState<string | null>(null);
   const { toast } = useToast();
+  const { currentUser } = useAuth(); // Get current user from AuthContext
 
   useEffect(() => {
     const updateStateFromStorage = () => {
@@ -54,7 +56,16 @@ export function PendingDeposits() {
   const handleProcessRequest = async (request: DepositRequest, newStatus: 'approved' | 'rejected') => {
     
     if (newStatus === 'approved') {
-      const result = await approveDepositAction(request.userId, request.amount);
+      if (!currentUser) { // Add a check for the admin user
+        toast({
+          title: "Authentication Error",
+          description: "Cannot verify your admin identity. Please refresh and log in again.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      const result = await approveDepositAction(currentUser.id, request.userId, request.amount);
       
       if (!result.success) {
         toast({ title: "Approval Failed", description: result.message, variant: "destructive" });
