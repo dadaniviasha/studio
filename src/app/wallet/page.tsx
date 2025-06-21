@@ -2,7 +2,6 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import Image from 'next/image';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppFooter } from '@/components/layout/AppFooter';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -253,14 +252,37 @@ export default function WalletPage() {
                     <Label>2. Scan QR to Pay</Label>
                     <div className="flex flex-col items-center justify-center p-4 rounded-lg bg-background/50 border">
                         <div className="bg-white p-2 rounded-lg w-[266px] h-[266px] flex items-center justify-center shadow-md">
-                           <Image
-                                src="https://placehold.co/250x250.png"
-                                alt="UPI Payment QR Code"
-                                data-ai-hint="qr code"
-                                width={250}
-                                height={250}
-                                className="rounded-sm"
-                            />
+                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="250" height="250" shapeRendering="crispEdges" className="rounded-sm" data-ai-hint="qr code">
+                              <rect width="100" height="100" fill="white"/>
+                              <rect x="10" y="10" width="25" height="25" fill="black"/>
+                              <rect x="15" y="15" width="15" height="15" fill="white"/>
+                              <rect x="18" y="18" width="9" height="9" fill="black"/>
+                              <rect x="65" y="10" width="25" height="25" fill="black"/>
+                              <rect x="70" y="15" width="15" height="15" fill="white"/>
+                              <rect x="73" y="18" width="9" height="9" fill="black"/>
+                              <rect x="10" y="65" width="25" height="25" fill="black"/>
+                              <rect x="15" y="70" width="15" height="15" fill="white"/>
+                              <rect x="18" y="73" width="9" height="9" fill="black"/>
+                              <rect x="40" y="40" width="5" height="5" fill="black" />
+                              <rect x="50" y="45" width="5" height="5" fill="black" />
+                              <rect x="60" y="50" width="5" height="5" fill="black" />
+                              <rect x="45" y="55" height="5" width="5" fill="black" />
+                              <rect x="55" y="60" width="5" height="5" fill="black" />
+                              <rect x="65" y="65" width="5" height="5" fill="black" />
+                              <rect x="40" y="10" width="5" height="5" fill="black" />
+                              <rect x="50" y="15" width="5" height="5" fill="black" />
+                              <rect x="60" y="20" width="5" height="5" fill="black" />
+                              <rect x="45" y="25" height="5" width="5" fill="black" />
+                              <rect x="10" y="40" width="5" height="5" fill="black" />
+                              <rect x="15" y="50" width="5" height="5" fill="black" />
+                              <rect x="20" y="60" width="5" height="5" fill="black" />
+                              <rect x="25" y="45" height="5" width="5" fill="black" />
+                              <rect x="70" y="40" width="5" height="5" fill="black" />
+                              <rect x="80" y="45" width="5" height="5" fill="black" />
+                              <rect x="90" y="50" width="5" height="5" fill="black" />
+                              <rect x="75" y="55" height="5" width="5" fill="black" />
+                              <rect x="85" y="60" width="5" height="5" fill="black" />
+                            </svg>
                         </div>
                     </div>
                 </div>
@@ -416,5 +438,3 @@ export default function WalletPage() {
     </div>
   );
 }
-
-    
