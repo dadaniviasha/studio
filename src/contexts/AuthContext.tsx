@@ -109,6 +109,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description = "Invalid email or password.";
       } else if (error.code === 'auth/api-key-not-valid') {
         description = "The Firebase API key is invalid. Please check your .env.local file and restart the application.";
+      } else if (error.code === 'auth/network-request-failed') {
+        description = "Cannot connect to Firebase. Please check your internet connection.";
       }
       toast({ title: "Login Failed", description, variant: "destructive" });
     } finally {
@@ -138,6 +140,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         errorMessage = "The password is too weak. It must be at least 6 characters long.";
       } else if (error.code === 'auth/api-key-not-valid') {
         errorMessage = "The Firebase API key is invalid. Please check your .env.local file and restart the application.";
+      } else if (error.code === 'auth/network-request-failed') {
+        errorMessage = "Cannot connect to Firebase. Please check your internet connection.";
       }
       toast({ title: "Signup Failed", description: errorMessage, variant: "destructive" });
     } finally {
@@ -160,6 +164,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateBalance = useCallback(async (newBalance: number) => {
     if (currentUser) {
       setCurrentUser(prevUser => prevUser ? { ...prevUser, walletBalance: newBalance } : null);
+      // In a secure setup, the database update would be handled by a Cloud Function.
+      // We removed the direct call to updateUserBalanceInDb to respect security rules.
+      // The line below is a good place for a developer note.
       console.log("Client-side balance updated for UI. A secure backend function would be needed to persist this change.");
     }
   }, [currentUser]);
