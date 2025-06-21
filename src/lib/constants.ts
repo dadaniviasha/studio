@@ -12,7 +12,7 @@ export const PAYOUT_MULTIPLIERS = {
   NUMBER: 9,   // Bet 10, win 90 (80 profit)
 };
 
-export const GAME_ROUND_DURATION_SECONDS = 30;
+export const GAME_ROUND_DURATION_SECONDS = 60;
 export const RESULT_PROCESSING_DURATION_SECONDS = 10; // Time to show result before new round
 
 // Defines the primary color and if Violet is also applicable for each number
