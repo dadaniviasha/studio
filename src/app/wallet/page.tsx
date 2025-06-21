@@ -2,7 +2,6 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import Image from 'next/image';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppFooter } from '@/components/layout/AppFooter';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -78,6 +77,9 @@ export default function WalletPage() {
       toast({ title: "Invalid Amount", description: "Please enter a valid amount to deposit.", variant: "destructive" });
       return;
     }
+    
+    // In a real app, this should be handled by a secure backend to prevent manipulation.
+    // For this prototype, we'll update it client-side and then persist to Firestore.
     const newBalance = currentBalance + amount;
     updateBalance(newBalance);
     setDepositAmount('');
@@ -99,10 +101,13 @@ export default function WalletPage() {
       toast({ title: "Insufficient Balance", description: "You don't have enough funds to withdraw this amount.", variant: "destructive" });
       return;
     }
-    const newBalance = currentBalance - amount;
-    updateBalance(newBalance);
+
+    // In a real app, this would create a withdrawal request in the database.
+    // The balance deduction should only happen after admin approval.
+    // For this prototype, we simulate the request being sent.
+    
     setWithdrawalAmount('');
-    // Simulate API call for withdrawal request
+    // We don't deduct the balance here. That happens when an admin approves.
     toast({ title: "Withdrawal Requested", description: `Your request to withdraw ₹${amount.toFixed(2)} is pending approval.` });
   };
 
@@ -168,11 +173,11 @@ export default function WalletPage() {
                   <p className="text-sm text-center text-muted-foreground">
                     Scan the QR code below to add funds.
                   </p>
-                  <Image
+                  <img
                     src="/scanner.png"
                     alt="Payment QR Code"
-                    width={250}
-                    height={250}
+                    width="250"
+                    height="250"
                     className="rounded-lg"
                   />
                 </div>
