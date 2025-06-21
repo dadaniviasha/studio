@@ -17,6 +17,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useAuth } from '@/contexts/AuthContext';
+import { ADMIN_EMAIL } from '@/lib/firebase/firestore';
 
 export function UserManagement() {
   const [users, setUsers] = useState<User[]>([]);
@@ -26,6 +28,7 @@ export function UserManagement() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [newBalance, setNewBalance] = useState('');
   const { toast } = useToast();
+  const { currentUser } = useAuth();
 
   useEffect(() => {
     async function fetchUsers() {
@@ -38,7 +41,8 @@ export function UserManagement() {
         let description = "An unexpected error occurred. Could not load the list of users.";
 
         if (error?.message && (error.message.includes('insufficient permissions') || error.message.includes('permission-denied'))) {
-            description = "You do not have permission to view the user list. This is a common setup issue caused by Firestore's Security Rules. To fix this, please open the `PROPOSED_FIRESTORE_RULES.md` file in your project and follow the instructions to update the rules in your Firebase Console.";
+            // This is the specific Firestore permissions error. We will create a more detailed message.
+            description = "You do not have permission to view the user list. This is a common setup issue caused by Firestore's Security Rules.";
         }
         
         setFetchError(description);
@@ -86,6 +90,29 @@ export function UserManagement() {
       });
     }
   };
+  
+  const renderTroubleshooting = () => (
+    <div className="space-y-2 text-sm">
+        <p>This error means your account lacks the necessary permissions in the database.</p>
+        <p className="font-semibold">Troubleshooting Checklist:</p>
+        <ol className="list-decimal list-inside space-y-2">
+            <li>
+                <strong>Correct Account:</strong> Are you logged in as the admin?
+                <ul className="list-disc list-inside pl-4 mt-1 bg-background/50 p-2 rounded-md">
+                    <li>The app sees you as: <strong className="text-primary">{currentUser?.email || 'Not Logged In'}</strong></li>
+                    <li>Your admin status is: <strong className="text-primary">{currentUser?.isAdmin ? 'Admin' : 'Not an Admin'}</strong></li>
+                    <li className="text-xs italic">Only the user with the email '{ADMIN_EMAIL}' should be an admin.</li>
+                </ul>
+            </li>
+            <li>
+                <strong>Correct Firestore Rules:</strong> Have you published the rules from <code className="text-xs bg-muted p-1 rounded">PROPOSED_FIRESTORE_RULES.md</code> in your Firebase project?
+            </li>
+            <li>
+                <strong>Correct Firebase Project:</strong> Does the Project ID in your Firebase Console match the <code className="text-xs bg-muted p-1 rounded">NEXT_PUBLIC_FIREBASE_PROJECT_ID</code> in your <code className="text-xs bg-muted p-1 rounded">.env.local</code> file? A mismatch is a very common cause of this error.
+            </li>
+        </ol>
+    </div>
+  );
 
   return (
     <>
@@ -102,7 +129,7 @@ export function UserManagement() {
               <AlertTriangle className="h-4 w-4" />
               <AlertTitle>Access Error</AlertTitle>
               <AlertDescription>
-                {fetchError}
+                {renderTroubleshooting()}
               </AlertDescription>
             </Alert>
           )}

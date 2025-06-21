@@ -80,6 +80,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
 
           if (appUserDoc) {
+            console.log("AuthContext: User state updated.", { email: appUserDoc.email, isAdmin: appUserDoc.isAdmin });
             setCurrentUser(appUserDoc);
           } else {
              setCurrentUser(null);
@@ -100,6 +101,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setCurrentUser(null);
         }
       } else {
+        console.log("AuthContext: No user is signed in.");
         setCurrentUser(null);
       }
       setLoading(false);
