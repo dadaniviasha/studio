@@ -3,13 +3,7 @@ export const MIN_BET_AMOUNT = 5;
 export const MIN_DEPOSIT_AMOUNT = 50;
 export const MIN_WITHDRAWAL_AMOUNT = 200;
 
-export const PAYOUT_MULTIPLIERS = {
-  RED: 2,
-  GREEN: 2,
-  VIOLET: 5,
-  NUMBER: 9,
-  // NUMBER_AND_COLOR: 15, // This is removed as bets are now separate
-};
+export const ADMIN_COMMISSION_RATE = 0.30; // 30% commission for the admin
 
 export const GAME_ROUND_DURATION_SECONDS = 30; // Updated from 60 to 30
 export const RESULT_PROCESSING_DURATION_SECONDS = 10; // Time to show result before new round
