@@ -70,9 +70,9 @@ export default function AdminPage() {
 
           <CurrentBetsOverview />
 
-          {/* <div className="mt-8">
+          <div className="mt-8">
               <UserManagement />
-          </div> */}
+          </div>
         </div>
 
       </main>

@@ -7,9 +7,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, XCircle, FileImage, Download, Eye } from 'lucide-react';
+import { CheckCircle, XCircle, Download, Eye } from 'lucide-react';
 import type { DepositRequest } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
+import { getAllUsersAction, updateUserBalanceAction } from '@/server/actions';
 
 const DEPOSIT_REQUESTS_STORAGE_KEY = 'CROTOS_DEPOSIT_REQUESTS';
 
@@ -45,29 +46,60 @@ export function PendingDeposits() {
 
   const handleProcessRequest = async (request: DepositRequest, newStatus: 'approved' | 'rejected') => {
     
-    // In a real app, if approved, you would first verify the payment and then
-    // securely call a backend function to update the user's balance in the database.
-    // Since this is a simulation, we just update the status in localStorage.
-    
-    const updatedRequests = requests.map(req =>
-      req.id === request.id ? { ...req, status: newStatus, processedAt: Date.now() } : req
-    );
-    
-    try {
+    if (newStatus === 'approved') {
+      try {
+        // --- Automatically update user's balance on approval ---
+        // 1. Get the user's current data.
+        const users = await getAllUsersAction();
+        const userToUpdate = users.find(u => u.id === request.userId);
+
+        if (!userToUpdate) {
+          toast({ title: "Error", description: `User with ID ${request.userId} not found. Cannot update balance.`, variant: "destructive" });
+          return;
+        }
+        
+        // 2. Calculate the new balance.
+        const newBalance = userToUpdate.walletBalance + request.amount;
+
+        // 3. Call the server action to update the balance in Firestore.
+        const result = await updateUserBalanceAction(request.userId, newBalance);
+        
+        if (!result.success) {
+            toast({ title: "Balance Update Failed", description: result.message, variant: "destructive" });
+            return; // Stop processing if balance update fails
+        }
+        
+        // 4. If balance update is successful, update the request status in localStorage.
+        const updatedRequests = requests.map(req =>
+          req.id === request.id ? { ...req, status: newStatus, processedAt: Date.now() } : req
+        );
         localStorage.setItem(DEPOSIT_REQUESTS_STORAGE_KEY, JSON.stringify(updatedRequests));
         setRequests(updatedRequests);
-        toast({ title: `Request ${newStatus}`, description: `Deposit request for ${request.username} has been ${newStatus}.` });
         
-        if (newStatus === 'approved') {
-            toast({
-                title: 'Reminder',
-                description: `Please manually update ${request.username}'s balance from the User Management panel.`,
-                duration: 7000
-            });
-        }
-    } catch (error) {
-        console.error("Failed to update deposit requests in localStorage:", error);
-        toast({ title: "Update Failed", description: "Could not process the request.", variant: "destructive" });
+        toast({
+            title: `Request Approved & Balance Updated!`,
+            description: `${request.username}'s balance is now ₹${newBalance.toFixed(2)}.`,
+        });
+
+      } catch (error) {
+        console.error("Failed to process approval:", error);
+        toast({ title: "Approval Failed", description: "An unexpected error occurred while updating the balance.", variant: "destructive" });
+        return;
+      }
+    } else { // newStatus is 'rejected'
+      // For rejections, we just update the localStorage status as before.
+      const updatedRequests = requests.map(req =>
+        req.id === request.id ? { ...req, status: newStatus, processedAt: Date.now() } : req
+      );
+      
+      try {
+          localStorage.setItem(DEPOSIT_REQUESTS_STORAGE_KEY, JSON.stringify(updatedRequests));
+          setRequests(updatedRequests);
+          toast({ title: `Request Rejected`, description: `Deposit request for ${request.username} has been rejected.` });
+      } catch (error) {
+          console.error("Failed to update deposit requests in localStorage:", error);
+          toast({ title: "Update Failed", description: "Could not process the rejection.", variant: "destructive" });
+      }
     }
   };
   
