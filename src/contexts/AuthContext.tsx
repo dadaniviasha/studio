@@ -59,24 +59,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           let appUserDoc = await getUserDocument(firebaseUser.uid);
           
           if (!appUserDoc) {
-            // If user doc doesn't exist, create it. This will set the isAdmin flag correctly.
+            // If user doc doesn't exist, create it. This will set the isAdmin flag correctly on signup.
             await createUserDocument(firebaseUser); 
             appUserDoc = await getUserDocument(firebaseUser.uid);
-          } else {
-            const userRef = doc(db, 'users', firebaseUser.uid);
-            // Self-healing logic: ensure isAdmin flag is always correct based on email.
-            // Case 1: User IS the admin, but flag is false. Set it to true.
-            if (firebaseUser.email === ADMIN_EMAIL && !appUserDoc.isAdmin) {
-                console.log(`Correcting admin status for ${firebaseUser.email} (granting).`);
-                await updateDoc(userRef, { isAdmin: true });
-                appUserDoc.isAdmin = true; // Update local copy
-            } 
-            // Case 2: User is NOT the admin, but flag is true. Set it to false.
-            else if (firebaseUser.email !== ADMIN_EMAIL && appUserDoc.isAdmin) {
-                console.log(`Correcting admin status for ${firebaseUser.email} (revoking).`);
-                await updateDoc(userRef, { isAdmin: false });
-                appUserDoc.isAdmin = false; // Update local copy
-            }
           }
 
           if (appUserDoc) {
@@ -84,7 +69,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setCurrentUser(appUserDoc);
           } else {
              setCurrentUser(null);
-             toast({ title: "Login Error", description: "Could not retrieve your user data after creation. Please try again.", variant: "destructive" });
+             toast({ title: "Login Error", description: "Could not retrieve your user data. Please try again.", variant: "destructive" });
           }
         } catch (error: any) {
             console.error("Firestore error during auth state change:", error);
@@ -115,11 +100,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, passwordAttempt);
-      // The onAuthStateChanged listener will handle fetching the user doc and redirecting.
-      // We can add a simple toast here.
       toast({ title: "Login Successful", description: `Welcome back!` });
-       // The redirect logic is now implicitly handled by the onAuthStateChanged listener setting the user state,
-       // causing a re-render that can then redirect based on role. We can add a direct redirect for faster UX.
       const userDoc = await getUserDocument(userCredential.user.uid);
       const isAdmin = userDoc?.isAdmin || (userCredential.user.email === ADMIN_EMAIL); 
       router.push(isAdmin ? '/admin' : '/');
@@ -146,7 +127,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, passwordRaw);
       await updateProfile(userCredential.user, { displayName: username });
-      // This function now correctly sets the `isAdmin` flag upon creation.
       await createUserDocument(userCredential.user, username);
 
       toast({ title: "Signup Successful", description: `Welcome, ${username}!` });
@@ -186,9 +166,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateBalance = useCallback(async (newBalance: number) => {
     if (currentUser) {
       setCurrentUser(prevUser => prevUser ? { ...prevUser, walletBalance: newBalance } : null);
-      // WARNING: This is a client-side update and is insecure for a real-money application.
-      // In a production environment, this logic MUST be moved to a secure backend,
-      // like a Firebase Cloud Function, to prevent users from modifying their own balance.
       await updateUserBalanceInDb(currentUser.id, newBalance);
     }
   }, [currentUser]);
