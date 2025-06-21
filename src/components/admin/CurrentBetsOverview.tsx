@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Eye, BarChart3, ArrowUp, ArrowDown } from 'lucide-react';
+import { Eye, BarChart3, ArrowUp, ArrowDown, Hash } from 'lucide-react';
 import type { Bet } from '@/lib/types';
 
 // Dummy data for bets - in a real app, this would come from a backend or shared state
@@ -15,6 +15,9 @@ const dummyBets: Bet[] = [
   { id: 'bet003', userId: 'user123', roundId: 'round777', selectedColor: 'GREEN', selectedNumber: null, amount: 200, timestamp: Date.now() - 15000 },
   { id: 'bet004', userId: 'user789', roundId: 'round777', selectedColor: 'VIOLET', selectedNumber: null, amount: 20, timestamp: Date.now() - 20000 },
   { id: 'bet005', userId: 'userXYZ', roundId: 'round777', selectedColor: null, selectedNumber: 0, amount: 500, timestamp: Date.now() - 25000 },
+  { id: 'bet006', userId: 'userABC', roundId: 'round777', selectedColor: null, selectedNumber: 7, amount: 30, timestamp: Date.now() - 30000 },
+  { id: 'bet007', userId: 'userDEF', roundId: 'round777', selectedColor: null, selectedNumber: 2, amount: 150, timestamp: Date.now() - 35000 },
+  { id: 'bet008', userId: 'userGHI', roundId: 'round777', selectedColor: null, selectedNumber: 9, amount: 10, timestamp: Date.now() - 40000 },
 ];
 
 export function CurrentBetsOverview() {
@@ -42,6 +45,18 @@ export function CurrentBetsOverview() {
   const betAmounts = dummyBets.map(b => b.amount);
   const biggestBet = betAmounts.length > 0 ? Math.max(...betAmounts) : 0;
   const smallestBet = betAmounts.length > 0 ? Math.min(...betAmounts) : 0;
+
+  // Calculate totals for each number
+  const totalsByNumber: Record<number, number> = {};
+  for (let i = 0; i < 10; i++) {
+    totalsByNumber[i] = 0;
+  }
+  dummyBets.forEach(bet => {
+    if (bet.selectedNumber !== null) {
+      totalsByNumber[bet.selectedNumber] = (totalsByNumber[bet.selectedNumber] || 0) + bet.amount;
+    }
+  });
+
 
   return (
     <Card className="shadow-xl bg-card/80 backdrop-blur-sm">
@@ -74,7 +89,7 @@ export function CurrentBetsOverview() {
                     <span className="font-bold text-lg text-purple-300">₹{totalOnViolet.toFixed(2)}</span>
                 </div>
                  <div className="flex flex-col p-3 bg-gray-700/20 rounded-md">
-                    <span className="text-gray-400">On Numbers</span>
+                    <span className="text-gray-400">On Numbers (Total)</span>
                     <span className="font-bold text-lg text-gray-300">₹{totalOnNumbers.toFixed(2)}</span>
                 </div>
                  <div className="flex flex-col p-3 bg-background/50 rounded-md">
@@ -88,6 +103,19 @@ export function CurrentBetsOverview() {
                 </div>
             </div>
         </div>
+        
+        <div className="mb-6 p-4 border rounded-lg bg-background/30">
+            <h3 className="text-lg font-semibold mb-4 flex items-center"><Hash className="mr-2 h-5 w-5" />Bets on Each Number</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 text-sm">
+                {Object.entries(totalsByNumber).map(([number, total]) => (
+                    <div key={number} className="flex flex-col items-center justify-center p-3 bg-background/50 rounded-md">
+                        <span className="font-bold text-2xl">{number}</span>
+                        <span className="font-semibold text-primary">₹{total.toFixed(2)}</span>
+                    </div>
+                ))}
+            </div>
+        </div>
+
         {dummyBets.length > 0 ? (
           <ScrollArea className="h-[300px] w-full border rounded-md">
             <Table>
