@@ -7,37 +7,45 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Wand2, Settings } from 'lucide-react';
-import type { ColorOption, NumberOption, GameResult } from '@/lib/types';
+import type { ColorOption, NumberOption } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
-interface ResultControllerProps {
-  // Allow null to clear the override
-  onSetResult: (result: Partial<GameResult> | null) => void;
-}
+const ADMIN_RESULT_STORAGE_KEY = 'CROTOS_ADMIN_RESULT_OVERRIDE';
 
-export function ResultController({ onSetResult }: ResultControllerProps) {
+export function ResultController() {
   const [mode, setMode] = useState<'random' | 'manual'>('random');
   const [manualColor, setManualColor] = useState<ColorOption | ''>('');
   const [manualNumber, setManualNumber] = useState<NumberOption | ''>('');
   const { toast } = useToast();
 
   const handleSetResult = () => {
-    if (mode === 'manual') {
-      if (manualNumber === '' || manualColor === '') {
-          toast({ title: "Invalid Selection", description: "Please select both a winning number and a winning color for manual override.", variant: "destructive" });
-          return;
+    try {
+      if (mode === 'manual') {
+        if (manualNumber === '' || manualColor === '') {
+            toast({ title: "Invalid Selection", description: "Please select both a winning number and a winning color for manual override.", variant: "destructive" });
+            return;
+        }
+        
+        const resultToStore = {
+            winningNumber: manualNumber as NumberOption,
+            winningColor: manualColor as ColorOption,
+        };
+  
+        localStorage.setItem(ADMIN_RESULT_STORAGE_KEY, JSON.stringify(resultToStore));
+        toast({ title: "Manual Result Set", description: `The next round will be Number: ${resultToStore.winningNumber}, Color: ${resultToStore.winningColor}.` });
+        
+      } else { // mode === 'random'
+          localStorage.removeItem(ADMIN_RESULT_STORAGE_KEY);
+          toast({ title: "Result Set to Random", description: "The next round will have a random outcome." });
       }
-      
-      const resultToSet: Partial<GameResult> = {
-          winningNumber: manualNumber as NumberOption,
-          winningColor: manualColor as ColorOption,
-      };
-
-      onSetResult(resultToSet);
-      
-    } else { // mode === 'random'
-        onSetResult(null); // Signal to clear any existing override
+    } catch (error) {
+      console.error("Error saving admin result to localStorage:", error);
+      toast({
+          title: "Storage Error",
+          description: "Could not save the admin-defined result.",
+          variant: "destructive",
+      });
     }
   };
 

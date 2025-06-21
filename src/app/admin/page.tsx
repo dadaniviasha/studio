@@ -7,55 +7,16 @@ import { ResultController } from '@/components/admin/ResultController';
 import { PendingWithdrawals } from '@/components/admin/PendingWithdrawals';
 import { CurrentBetsOverview } from '@/components/admin/CurrentBetsOverview';
 import { UserManagement } from '@/components/admin/UserManagement';
-import type { GameResult } from '@/lib/types';
-import { useToast } from "@/hooks/use-toast";
 import { ShieldCheck, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
-const ADMIN_RESULT_STORAGE_KEY = 'CROTOS_ADMIN_RESULT_OVERRIDE';
-
 export default function AdminPage() {
-  const { toast } = useToast();
   const { currentUser, loading: authLoading } = useAuth();
   
-  // This function now handles setting a manual result, or clearing it.
-  const handleSetNextResult = (result: Partial<GameResult> | null) => {
-    try {
-      if (result === null) {
-        // If null is passed, clear any existing override.
-        localStorage.removeItem(ADMIN_RESULT_STORAGE_KEY);
-        toast({ title: "Result Set to Random", description: "The next round will have a random outcome." });
-        return;
-      }
-
-      // This validation should be handled by the controller, but we double-check here.
-      if (result.winningNumber === undefined || !result.winningColor) {
-        console.error("Admin attempted to set an incomplete result:", result);
-        toast({
-          title: "Error: Incomplete Result Data",
-          description: "Both winning number and color must be specified.",
-          variant: "destructive",
-        });
-        return;
-      }
-    
-      const resultToStore = {
-        winningNumber: result.winningNumber,
-        winningColor: result.winningColor,
-      };
-      localStorage.setItem(ADMIN_RESULT_STORAGE_KEY, JSON.stringify(resultToStore));
-      toast({ title: "Manual Result Set", description: `The next round will be Number: ${result.winningNumber}, Color: ${result.winningColor}.` });
-    } catch (error) {
-      console.error("Error saving admin result to localStorage:", error);
-      toast({
-        title: "Storage Error",
-        description: "Could not save the admin-defined result.",
-        variant: "destructive",
-      });
-    }
-  };
+  // The logic for setting the next result has been moved into the ResultController
+  // component to make it more self-contained and fix a bug.
 
   if (authLoading) {
      return (
@@ -99,7 +60,7 @@ export default function AdminPage() {
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-start">
-          <ResultController onSetResult={handleSetNextResult} />
+          <ResultController />
           <PendingWithdrawals />
         </div>
         
