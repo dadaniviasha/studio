@@ -2,7 +2,7 @@
 
 import type { Bet, ColorOption, NumberOption, GameResult, WithdrawalRequest, User } from "@/lib/types";
 import { MIN_BET_AMOUNT, MIN_WITHDRAWAL_AMOUNT } from "@/lib/constants";
-import { getAllUsers, updateUserBalanceInDb } from "@/lib/firebase/firestore";
+import { getAllUsers, updateUserBalanceInDb, getUserDocument } from "@/lib/firebase/firestore";
 
 // This is a placeholder file. In a real application, these actions would interact with a database,
 // handle authentication, and perform actual game logic. For this scaffold, they will mostly
@@ -142,5 +142,32 @@ export async function updateUserBalanceAction(userId: string, newBalance: number
     } catch (error) {
         console.error("Error updating user balance via server action:", error);
         return { success: false, message: "A server error occurred." };
+    }
+}
+
+export async function approveDepositAction(userId: string, depositAmount: number): Promise<{ success: boolean; message: string; newBalance?: number }> {
+    if (depositAmount <= 0) {
+        return { success: false, message: "Deposit amount must be positive." };
+    }
+
+    try {
+        // This uses a 'get' operation, which is less restrictive than 'list'
+        const user = await getUserDocument(userId);
+        if (!user) {
+            return { success: false, message: `User with ID ${userId} not found.` };
+        }
+
+        const newBalance = user.walletBalance + depositAmount;
+        await updateUserBalanceInDb(userId, newBalance);
+        
+        const successMessage = `${user.username}'s balance is now ₹${newBalance.toFixed(2)}.`;
+
+        return { success: true, message: successMessage, newBalance };
+    } catch (error: any) {
+        console.error("Error approving deposit via server action:", error);
+        if (error.code === 'permission-denied' || error.code === 'unavailable') {
+             return { success: false, message: "Permission Denied: Ensure you are an admin and have updated Firestore security rules to allow reading user data." };
+        }
+        return { success: false, message: "A server error occurred while approving the deposit." };
     }
 }

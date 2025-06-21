@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -10,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { CheckCircle, XCircle, Download, Eye } from 'lucide-react';
 import type { DepositRequest } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
-import { getAllUsersAction, updateUserBalanceAction } from '@/server/actions';
+import { approveDepositAction } from '@/server/actions';
 
 const DEPOSIT_REQUESTS_STORAGE_KEY = 'CROTOS_DEPOSIT_REQUESTS';
 
@@ -47,29 +46,11 @@ export function PendingDeposits() {
   const handleProcessRequest = async (request: DepositRequest, newStatus: 'approved' | 'rejected') => {
     
     if (newStatus === 'approved') {
-      try {
-        // --- Automatically update user's balance on approval ---
-        // 1. Get the user's current data.
-        const users = await getAllUsersAction();
-        const userToUpdate = users.find(u => u.id === request.userId);
-
-        if (!userToUpdate) {
-          toast({ title: "Error", description: `User with ID ${request.userId} not found. Cannot update balance.`, variant: "destructive" });
-          return;
-        }
-        
-        // 2. Calculate the new balance.
-        const newBalance = userToUpdate.walletBalance + request.amount;
-
-        // 3. Call the server action to update the balance in Firestore.
-        const result = await updateUserBalanceAction(request.userId, newBalance);
-        
-        if (!result.success) {
-            toast({ title: "Balance Update Failed", description: result.message, variant: "destructive" });
-            return; // Stop processing if balance update fails
-        }
-        
-        // 4. If balance update is successful, update the request status in localStorage.
+      // Call the new, consolidated server action
+      const result = await approveDepositAction(request.userId, request.amount);
+      
+      if (result.success) {
+        // If server action is successful, update the request status in localStorage.
         const updatedRequests = requests.map(req =>
           req.id === request.id ? { ...req, status: newStatus, processedAt: Date.now() } : req
         );
@@ -78,16 +59,14 @@ export function PendingDeposits() {
         
         toast({
             title: `Request Approved & Balance Updated!`,
-            description: `${request.username}'s balance is now ₹${newBalance.toFixed(2)}.`,
+            description: result.message, // Use the detailed message from the server
         });
-
-      } catch (error) {
-        console.error("Failed to process approval:", error);
-        toast({ title: "Approval Failed", description: "An unexpected error occurred while updating the balance.", variant: "destructive" });
-        return;
+      } else {
+        // If the server action fails (e.g., permission denied), show the error.
+        toast({ title: "Approval Failed", description: result.message, variant: "destructive" });
       }
     } else { // newStatus is 'rejected'
-      // For rejections, we just update the localStorage status as before.
+      // Rejection logic can remain the same as it doesn't touch the database.
       const updatedRequests = requests.map(req =>
         req.id === request.id ? { ...req, status: newStatus, processedAt: Date.now() } : req
       );
