@@ -395,6 +395,7 @@ export default function HomePage() {
                                 <AlertCircle className="mr-2 h-5 w-5 text-destructive/80" /> Important Notes
                             </AccordionTrigger>
                             <AccordionContent className="space-y-2 text-muted-foreground">
+                               <p className="font-bold text-destructive">This is a prototype application. No real money is involved.</p>
                                <p>Minimum bet amount for each bet type (color or number): ₹{MIN_BET_AMOUNT}.</p>
                                <p>Bets are final once placed.</p>
                                <p>Play responsibly. This is a game of chance.</p>

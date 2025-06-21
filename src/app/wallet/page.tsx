@@ -36,7 +36,7 @@ export default function WalletPage() {
     const newBalance = currentBalance + amount;
     updateBalance(newBalance);
     setDepositAmount('');
-    toast({ title: "Deposit Successful", description: `₹${amount.toFixed(2)} has been added to your wallet.` });
+    toast({ title: "Deposit Successful (Simulation)", description: `₹${amount.toFixed(2)} has been added to your wallet.` });
   };
 
   const handleWithdrawal = (e: React.FormEvent) => {
@@ -99,7 +99,7 @@ export default function WalletPage() {
           <CardHeader className="text-center">
             <WalletCards className="mx-auto h-16 w-16 text-primary mb-4" />
             <CardTitle className="text-3xl font-headline">{currentUser.username}&apos;s Wallet</CardTitle>
-            <CardDescription className="text-lg">Manage your funds and transactions.</CardDescription>
+            <CardDescription className="text-lg">Manage your funds. (All transactions are simulated).</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-center py-6 border-b border-t border-border/40 my-6">
@@ -113,9 +113,9 @@ export default function WalletPage() {
           <Card className="shadow-xl bg-card/80 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="flex items-center text-xl font-headline text-green-500">
-                <ArrowDownCircle className="mr-2 h-6 w-6" /> Deposit Funds
+                <ArrowDownCircle className="mr-2 h-6 w-6" /> Deposit Funds (Simulation)
               </CardTitle>
-              <CardDescription>Add money to your wallet to start playing.</CardDescription>
+              <CardDescription>Add simulated money to your wallet.</CardDescription>
             </CardHeader>
             <form onSubmit={handleDeposit}>
               <CardContent className="space-y-4">
@@ -146,9 +146,9 @@ export default function WalletPage() {
           <Card className="shadow-xl bg-card/80 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="flex items-center text-xl font-headline text-red-500">
-                <ArrowUpCircle className="mr-2 h-6 w-6" /> Withdraw Funds
+                <ArrowUpCircle className="mr-2 h-6 w-6" /> Withdraw Funds (Simulation)
               </CardTitle>
-              <CardDescription>Request a withdrawal of your winnings.</CardDescription>
+              <CardDescription>Request a simulated withdrawal.</CardDescription>
             </CardHeader>
             <form onSubmit={handleWithdrawal}>
               <CardContent className="space-y-4">
