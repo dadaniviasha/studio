@@ -1,39 +1,52 @@
+
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
 import { getFirestore, type Firestore } from "firebase/firestore";
 
 // --- Firebase Initialization and Debugging ---
-console.log("--- Initializing Firebase ---");
+console.log("--- Initializing Firebase: Checking environment variables... ---");
 
-const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
-const authDomain = process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN;
-const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
-const storageBucket = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
-const messagingSenderId = process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID;
-const appId = process.env.NEXT_PUBLIC_FIREBASE_APP_ID;
+const firebaseConfig = {
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+};
 
-console.log("Checking for NEXT_PUBLIC_FIREBASE_API_KEY:", apiKey ? "Found" : "MISSING");
-console.log("Checking for NEXT_PUBLIC_FIREBASE_PROJECT_ID:", projectId ? "Found" : "MISSING");
+// Check each key and log a specific error if it's missing
+let configIsValid = true;
+// A map to convert camelCase keys from firebaseConfig to the snake_case format in .env.local
+const keyToEnvVarMap: { [key: string]: string } = {
+  apiKey: 'NEXT_PUBLIC_FIREBASE_API_KEY',
+  authDomain: 'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN',
+  projectId: 'NEXT_PUBLIC_FIREBASE_PROJECT_ID',
+  storageBucket: 'NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET',
+  messagingSenderId: 'NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID',
+  appId: 'NEXT_PUBLIC_FIREBASE_APP_ID'
+};
 
-export const FBCONFIG_MISSING = !apiKey || !projectId;
+for (const [key, value] of Object.entries(firebaseConfig)) {
+  const envVarName = keyToEnvVarMap[key];
+  if (!value) {
+    console.error(`CRITICAL: Firebase config key '${envVarName}' is missing. Please check your .env.local file.`);
+    configIsValid = false;
+  } else {
+    console.log(`- ${envVarName}: Found.`);
+  }
+}
+
+export const FBCONFIG_MISSING = !configIsValid;
 
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
 let db: Firestore | null = null;
 
 if (FBCONFIG_MISSING) {
-  console.error("CRITICAL: Firebase config is missing or incomplete. Please verify your .env.local file and ensure the server has restarted.");
+  console.error("Firebase initialization failed due to missing configuration. Please check the errors above, correct your .env.local file, and ensure the app has restarted.");
 } else {
-  const firebaseConfig = {
-    apiKey,
-    authDomain,
-    projectId,
-    storageBucket,
-    messagingSenderId,
-    appId,
-  };
-
   try {
     app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
     auth = getAuth(app);
