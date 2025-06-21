@@ -180,12 +180,10 @@ export default function WalletPage() {
                         height={250}
                         className="rounded-md"
                         data-ai-hint="qr code"
-                        // If the image fails to load, this will show a placeholder
-                        onError={(e) => { e.currentTarget.src = 'https://placehold.co/250x250.png'; }}
                       />
                     </div>
                      <p className="text-xs text-muted-foreground text-center">
-                      To show your QR code, upload an image named `scanner.png` to the `public/images` folder.
+                      Your QR code should appear here. If not, ensure a file named `scanner.png` is in the `public/images` folder and restart the server.
                     </p>
                   </div>
                 <div>
