@@ -102,7 +102,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const userCredential = await signInWithEmailAndPassword(auth, email, passwordAttempt);
       toast({ title: "Login Successful", description: `Welcome back!` });
       const userDoc = await getUserDocument(userCredential.user.uid);
-      const isAdmin = userDoc?.isAdmin || (userCredential.user.email === ADMIN_EMAIL); 
+      // Rely ONLY on the database record for admin status.
+      const isAdmin = !!userDoc?.isAdmin;
       router.push(isAdmin ? '/admin' : '/');
 
     } catch (error: any) {
