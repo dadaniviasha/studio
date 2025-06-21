@@ -50,7 +50,7 @@ export function ResultController({ onSetResult }: ResultControllerProps) {
         <CardTitle className="flex items-center text-xl font-headline text-primary">
           <Settings className="mr-2 h-6 w-6" /> Result Override
         </CardTitle>
-        <CardDescription>Manually set the outcome for the next round. By default, results are random.</CardDescription>
+        <CardDescription>Manually set the outcome for only the next round. The game returns to random results automatically after that.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-4 p-4 border rounded-md bg-background/30">
