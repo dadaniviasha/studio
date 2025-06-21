@@ -37,6 +37,17 @@ export default function HomePage() {
   
   const [currentDisplayedBalance, setCurrentDisplayedBalance] = useState<number>(GUEST_INITIAL_BALANCE);
   
+  // Create refs to hold the latest values of state, preventing the timer from resetting.
+  const activeBetsRef = useRef(activeBets);
+  useEffect(() => {
+    activeBetsRef.current = activeBets;
+  }, [activeBets]);
+
+  const currentDisplayedBalanceRef = useRef(currentDisplayedBalance);
+  useEffect(() => {
+    currentDisplayedBalanceRef.current = currentDisplayedBalance;
+  }, [currentDisplayedBalance]);
+
   const [round, setRound] = useState<GameRound>({
     id: currentRoundId.toString(),
     startTime: Date.now(),
@@ -134,7 +145,8 @@ export default function HomePage() {
       setResultHistory(prev => [newResult!, ...prev.slice(0, 9)]); 
 
       // --- NEW PARIMUTUEL PAYOUT LOGIC ---
-      const betsPlacedThisRound = activeBets.filter(bet => bet.roundId === round.id && !bet.isProcessed);
+      // Using refs to get the latest state without causing the callback to be recreated.
+      const betsPlacedThisRound = activeBetsRef.current.filter(bet => bet.roundId === round.id && !bet.isProcessed);
       const totalBetAmountThisRound = betsPlacedThisRound.reduce((sum, bet) => sum + bet.amount, 0);
       const prizePool = totalBetAmountThisRound * (1 - ADMIN_COMMISSION_RATE);
 
@@ -148,7 +160,7 @@ export default function HomePage() {
       let totalPayoutsThisRound = 0;
       let anyBetWon = winningBets.length > 0;
       
-      const updatedBets = activeBets.map(bet => {
+      const updatedBets = activeBetsRef.current.map(bet => {
         if (bet.roundId !== round.id || bet.isProcessed) return bet; 
 
         const isWinner = winningBets.some(winningBet => winningBet.id === bet.id);
@@ -170,7 +182,7 @@ export default function HomePage() {
 
       setActiveBets(updatedBets); 
       
-      const newBalance = currentDisplayedBalance + totalPayoutsThisRound;
+      const newBalance = currentDisplayedBalanceRef.current + totalPayoutsThisRound;
       if (currentUser) {
         updateAuthBalance(newBalance); 
       }
@@ -207,7 +219,8 @@ export default function HomePage() {
       }, RESULT_PROCESSING_DURATION_SECONDS * 1000);
 
     }, 2000); 
-  }, [round.id, activeBets, currentDisplayedBalance, toast, currentUser, updateAuthBalance]);
+    // Stable dependencies: only include values that don't change on every render.
+  }, [round.id, toast, currentUser, updateAuthBalance]);
 
   const handleBetPlaced = (submission: BetSubmission) => {
     if (!currentUser && (!submission.colorBet && !submission.numberBet)) {
