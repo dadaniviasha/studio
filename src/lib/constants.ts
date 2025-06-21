@@ -1,5 +1,6 @@
 
 export const MIN_BET_AMOUNT = 5;
+export const MIN_DEPOSIT_AMOUNT = 50;
 export const MIN_WITHDRAWAL_AMOUNT = 200;
 
 export const PAYOUT_MULTIPLIERS = {

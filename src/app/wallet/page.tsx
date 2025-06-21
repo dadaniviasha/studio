@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { DollarSign, ArrowDownCircle, ArrowUpCircle, WalletCards, AlertTriangle, History, ArrowDown, ArrowUp, Trophy, Gift, ArrowRightLeft } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
-import { MIN_WITHDRAWAL_AMOUNT } from '@/lib/constants';
+import { MIN_WITHDRAWAL_AMOUNT, MIN_DEPOSIT_AMOUNT } from '@/lib/constants';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 import type { WalletTransaction } from '@/lib/types';
@@ -73,8 +73,8 @@ export default function WalletPage() {
       return;
     }
     const amount = parseFloat(depositAmount);
-    if (isNaN(amount) || amount <= 0) {
-      toast({ title: "Invalid Amount", description: "Please enter a valid amount to deposit.", variant: "destructive" });
+    if (isNaN(amount) || amount < MIN_DEPOSIT_AMOUNT) {
+      toast({ title: "Invalid Amount", description: `Minimum deposit amount is ₹${MIN_DEPOSIT_AMOUNT}.`, variant: "destructive" });
       return;
     }
     
@@ -183,9 +183,9 @@ export default function WalletPage() {
                       type="number"
                       value={depositAmount}
                       onChange={(e) => setDepositAmount(e.target.value)}
-                      placeholder="Enter amount"
+                      placeholder={`Min ₹${MIN_DEPOSIT_AMOUNT}`}
                       className="pl-10 h-12"
-                      min="1" 
+                      min={MIN_DEPOSIT_AMOUNT.toString()} 
                     />
                   </div>
                 </div>
