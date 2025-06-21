@@ -102,7 +102,12 @@ export default function HomePage() {
       if (adminDefinedResultString) {
         try {
           const adminResult = JSON.parse(adminDefinedResultString);
-          if (adminResult.winningNumber !== undefined && adminResult.winningColor) {
+          // Add a much more robust check on the parsed object
+          const isValidNumber = typeof adminResult.winningNumber === 'number' && adminResult.winningNumber >= 0 && adminResult.winningNumber <= 9;
+          const isValidColor = typeof adminResult.winningColor === 'string' && ['RED', 'GREEN', 'VIOLET'].includes(adminResult.winningColor);
+
+          if (isValidNumber && isValidColor) {
+            console.log("Applying admin-defined result:", adminResult);
             newResult = {
               roundId: round.id,
               winningNumber: adminResult.winningNumber,
@@ -110,15 +115,20 @@ export default function HomePage() {
               timestamp: Date.now(),
               finalizedBy: 'admin',
             };
-            localStorage.removeItem(ADMIN_RESULT_STORAGE_KEY); 
+          } else {
+             console.warn("Invalid admin result found in localStorage. Falling back to random.", adminResult);
           }
         } catch (error) {
           console.error("Error parsing admin result. Falling back to random:", error);
-          localStorage.removeItem(ADMIN_RESULT_STORAGE_KEY);
+        } finally {
+            // Always remove the key after attempting to use it.
+            localStorage.removeItem(ADMIN_RESULT_STORAGE_KEY);
         }
       }
 
+      // If no valid admin result was created, generate a random one.
       if (!newResult) {
+        console.log("Generating random result.");
         const winningNumber = Math.floor(Math.random() * 10) as NumberOption;
         const availableColors: ColorOption[] = ['RED', 'GREEN', 'VIOLET'];
         const determinedWinningColor = availableColors[Math.floor(Math.random() * availableColors.length)];
@@ -402,5 +412,7 @@ export default function HomePage() {
       <AppFooter />
     </div>
   );
+
+    
 
     

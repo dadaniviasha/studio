@@ -15,20 +15,22 @@ const ADMIN_RESULT_STORAGE_KEY = 'CROTOS_ADMIN_RESULT_OVERRIDE';
 
 export function ResultController() {
   const [mode, setMode] = useState<'random' | 'manual'>('random');
-  const [manualColor, setManualColor] = useState<ColorOption | ''>('');
-  const [manualNumber, setManualNumber] = useState<NumberOption | ''>('');
+  // Use strings for state to simplify interaction with Select components
+  const [manualColor, setManualColor] = useState<string>('');
+  const [manualNumber, setManualNumber] = useState<string>('');
   const { toast } = useToast();
 
   const handleSetResult = () => {
     try {
       if (mode === 'manual') {
-        if (manualNumber === '' || manualColor === '') {
+        // Simplified and more robust check
+        if (!manualNumber || !manualColor) {
             toast({ title: "Invalid Selection", description: "Please select both a winning number and a winning color for manual override.", variant: "destructive" });
             return;
         }
         
         const resultToStore = {
-            winningNumber: manualNumber as NumberOption,
+            winningNumber: parseInt(manualNumber, 10) as NumberOption,
             winningColor: manualColor as ColorOption,
         };
   
@@ -76,11 +78,8 @@ export function ResultController() {
               <div>
                 <Label htmlFor="manualNumber">Winning Number *</Label>
                 <Select 
-                  value={manualNumber === '' ? '' : manualNumber.toString()} 
-                  onValueChange={(value) => {
-                    const numValue = value === '' ? '' : parseInt(value) as NumberOption;
-                    setManualNumber(numValue);
-                  }}
+                  value={manualNumber} 
+                  onValueChange={(value) => setManualNumber(value)}
                 >
                   <SelectTrigger id="manualNumber" className="w-full h-12 mt-1">
                     <SelectValue placeholder="Select winning number" />
@@ -96,7 +95,7 @@ export function ResultController() {
                 <Label htmlFor="manualColor">Winning Color *</Label>
                 <Select 
                   value={manualColor} 
-                  onValueChange={(value: ColorOption | '') => setManualColor(value)}
+                  onValueChange={(value) => setManualColor(value)}
                 >
                   <SelectTrigger id="manualColor" className="w-full h-12 mt-1">
                     <SelectValue placeholder="Select winning color" />
@@ -119,3 +118,5 @@ export function ResultController() {
     </Card>
   );
 }
+
+    
