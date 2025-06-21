@@ -110,10 +110,12 @@ export function PendingDeposits() {
                       <Button 
                         variant="outline" 
                         size="sm" 
-                        onClick={() => window.open(req.screenshotDataUrl, '_blank')} 
-                        title={req.screenshotFilename}
+                        onClick={() => { if(req.screenshotDataUrl) window.open(req.screenshotDataUrl, '_blank')}} 
+                        title={req.screenshotDataUrl ? `View proof: ${req.screenshotFilename}` : "No screenshot was uploaded for this request."}
+                        disabled={!req.screenshotDataUrl}
                       >
-                        <Eye className="mr-1 h-4 w-4" /> View Proof
+                        <Eye className="mr-1 h-4 w-4" />
+                        {req.screenshotDataUrl ? 'View Proof' : 'No Proof'}
                       </Button>
                       <Button variant="ghost" size="sm" className="text-green-500 hover:bg-green-500/10" onClick={() => handleProcessRequest(req, 'approved')} title="Mark as Approved">
                         <CheckCircle className="mr-1 h-4 w-4" /> Approve
