@@ -46,29 +46,40 @@ export function PendingDeposits() {
   const handleProcessRequest = async (request: DepositRequest, newStatus: 'approved' | 'rejected') => {
     
     if (newStatus === 'approved') {
-      // Call the new, consolidated server action
+      // For approvals, first attempt the database update via the server action.
       const result = await approveDepositAction(request.userId, request.amount);
       
-      if (result.success) {
-        // If server action is successful, update the request status in localStorage.
-        const updatedRequests = requests.map(req =>
-          req.id === request.id ? { ...req, status: newStatus, processedAt: Date.now() } : req
-        );
+      if (!result.success) {
+        // If the server action fails, show an error and stop.
+        toast({ title: "Approval Failed", description: result.message, variant: "destructive" });
+        return;
+      }
+      
+      // If server action is successful, proceed to update localStorage, clearing the screenshot data.
+      const updatedRequests = requests.map(req =>
+        req.id === request.id 
+        ? { ...req, status: newStatus, processedAt: Date.now(), screenshotDataUrl: '' } // Clear data URL
+        : req
+      );
+
+      try {
         localStorage.setItem(DEPOSIT_REQUESTS_STORAGE_KEY, JSON.stringify(updatedRequests));
         setRequests(updatedRequests);
-        
         toast({
             title: `Request Approved & Balance Updated!`,
-            description: result.message, // Use the detailed message from the server
+            description: result.message,
         });
-      } else {
-        // If the server action fails (e.g., permission denied), show the error.
-        toast({ title: "Approval Failed", description: result.message, variant: "destructive" });
+      } catch (error) {
+         console.error("Failed to update deposit requests in localStorage:", error);
+         toast({ title: "Storage Update Failed", description: "DB was updated, but couldn't clear screenshot from local storage. It may be full.", variant: "destructive" });
       }
-    } else { // newStatus is 'rejected'
-      // Rejection logic can remain the same as it doesn't touch the database.
+
+    } else { // This is for 'rejected' status
+      // Rejection logic only needs to update localStorage, clearing the screenshot data.
       const updatedRequests = requests.map(req =>
-        req.id === request.id ? { ...req, status: newStatus, processedAt: Date.now() } : req
+        req.id === request.id 
+        ? { ...req, status: newStatus, processedAt: Date.now(), screenshotDataUrl: '' } // Clear data URL
+        : req
       );
       
       try {
@@ -77,7 +88,7 @@ export function PendingDeposits() {
           toast({ title: `Request Rejected`, description: `Deposit request for ${request.username} has been rejected.` });
       } catch (error) {
           console.error("Failed to update deposit requests in localStorage:", error);
-          toast({ title: "Update Failed", description: "Could not process the rejection.", variant: "destructive" });
+          toast({ title: "Update Failed", description: "Could not process the rejection, possibly due to storage limits.", variant: "destructive" });
       }
     }
   };
