@@ -37,7 +37,6 @@ export function ResultController({ onSetResult }: ResultControllerProps) {
     const resultToSet: Partial<GameResult> = {
         winningNumber: manualNumber as NumberOption,
         winningColor: manualColor as ColorOption,
-        finalizedBy: 'admin',
     };
 
     onSetResult(resultToSet);

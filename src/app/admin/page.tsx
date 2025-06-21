@@ -28,10 +28,14 @@ export default function AdminPage() {
       return;
     }
     
-    // Store the admin-defined result in localStorage
+    // Store a simplified version of the result in localStorage
     try {
-      localStorage.setItem('adminDefinedNextResult', JSON.stringify(result));
-      console.log("Admin set next result, stored in localStorage:", result);
+      const resultToStore = {
+        winningNumber: result.winningNumber,
+        winningColor: result.winningColor,
+      };
+      localStorage.setItem('adminDefinedNextResult', JSON.stringify(resultToStore));
+      console.log("Admin set next result, stored in localStorage:", resultToStore);
       // The toast notification is now handled within the ResultController component itself
       // to provide direct feedback to the admin upon clicking the button.
     } catch (error) {

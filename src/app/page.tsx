@@ -80,47 +80,35 @@ export default function HomePage() {
     setRound(prev => ({ ...prev, status: 'processing' }));
 
     setTimeout(() => {
-      let newResult: GameResult;
+      let newResult: GameResult | null = null;
+      
+      // --- REVISED RESULT DETERMINATION LOGIC ---
       const adminDefinedResultString = localStorage.getItem('adminDefinedNextResult');
-
+      
       if (adminDefinedResultString) {
+        localStorage.removeItem('adminDefinedNextResult'); // Remove immediately to prevent reuse
         try {
           const adminResult = JSON.parse(adminDefinedResultString) as Partial<GameResult>;
           if (adminResult.winningNumber !== undefined && adminResult.winningColor) {
+            console.log("Using admin-defined result:", adminResult);
             newResult = {
               roundId: round.id,
               winningNumber: adminResult.winningNumber,
               winningColor: adminResult.winningColor,
               timestamp: Date.now(),
-              finalizedBy: adminResult.finalizedBy || 'admin', 
+              finalizedBy: 'admin',
             };
-            // Intentionally no toast message for admin-set results
           } else {
-            throw new Error("Incomplete admin result data from localStorage.");
+            console.warn("Admin result from localStorage was incomplete. Falling back to random.");
           }
         } catch (error) {
-          console.error("Error parsing admin result from localStorage, generating random:", error);
-          // Fallback to random generation if parsing fails or data is incomplete
-          const winningNumber = Math.floor(Math.random() * 10) as NumberOption;
-          let determinedWinningColor: ColorOption;
-          if (winningNumber === 0 || winningNumber === 5) {
-            determinedWinningColor = 'VIOLET';
-          } else {
-            const availableColors: ColorOption[] = ['RED', 'GREEN', 'VIOLET'];
-            determinedWinningColor = availableColors[Math.floor(Math.random() * availableColors.length)];
-          }
-          newResult = {
-            roundId: round.id,
-            winningNumber,
-            winningColor: determinedWinningColor,
-            timestamp: Date.now(),
-            finalizedBy: 'random',
-          };
-        } finally {
-            localStorage.removeItem('adminDefinedNextResult'); // Clear after use or if error
+          console.error("Error parsing admin result from localStorage. Falling back to random:", error);
         }
-      } else {
-        // Default random generation
+      }
+
+      if (!newResult) {
+        // Default to random generation if no admin result was found or if it was invalid
+        console.log("Generating random result.");
         const winningNumber = Math.floor(Math.random() * 10) as NumberOption;
         let determinedWinningColor: ColorOption;
   
@@ -139,9 +127,10 @@ export default function HomePage() {
           finalizedBy: 'random', 
         };
       }
+      // --- END OF REVISED LOGIC ---
 
       setCurrentResult(newResult);
-      setResultHistory(prev => [newResult, ...prev.slice(0, 9)]); 
+      setResultHistory(prev => [newResult!, ...prev.slice(0, 9)]); 
 
       // --- NEW PARIMUTUEL PAYOUT LOGIC ---
       const betsPlacedThisRound = activeBets.filter(bet => bet.roundId === round.id && !bet.isProcessed);
@@ -149,8 +138,8 @@ export default function HomePage() {
       const prizePool = totalBetAmountThisRound * (1 - ADMIN_COMMISSION_RATE);
 
       const winningBets = betsPlacedThisRound.filter(bet => {
-          if (bet.selectedNumber !== null && bet.selectedNumber === newResult.winningNumber) return true;
-          if (bet.selectedColor !== null && bet.selectedColor === newResult.winningColor) return true;
+          if (bet.selectedNumber !== null && bet.selectedNumber === newResult!.winningNumber) return true;
+          if (bet.selectedColor !== null && bet.selectedColor === newResult!.winningColor) return true;
           return false;
       });
 
@@ -212,7 +201,7 @@ export default function HomePage() {
           endTime: Date.now() + GAME_ROUND_DURATION_SECONDS * 1000,
           status: 'betting'
         });
-        setActiveBets(prev => prev.filter(bet => !bet.isProcessed || bet.roundId !== newResult.roundId)); 
+        setActiveBets(prev => prev.filter(bet => !bet.isProcessed || bet.roundId !== newResult!.roundId)); 
         setIsBettingPhase(true);
       }, RESULT_PROCESSING_DURATION_SECONDS * 1000);
 
