@@ -87,7 +87,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       router.push('/');
     } catch (error: any) {
       console.error("Firebase login error:", error);
-      toast({ title: "Login Failed", description: "Invalid email or password.", variant: "destructive" });
+      let description = "An unexpected error occurred. Please try again.";
+      if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
+        description = "Invalid email or password.";
+      } else if (error.code === 'auth/api-key-not-valid') {
+        description = "The Firebase API key is invalid. Please check your .env.local file and restart the application.";
+      }
+      toast({ title: "Login Failed", description, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -104,12 +110,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       toast({ title: "Signup Successful", description: `Welcome, ${username}!` });
       router.push('/');
-    } catch (error: any)
-     {
+    } catch (error: any) {
       console.error("Firebase signup error:", error);
-      const errorMessage = error.code === 'auth/email-already-in-use' 
-        ? "An account with this email already exists." 
-        : "Failed to sign up. Please try again.";
+      let errorMessage = "Failed to sign up. Please try again.";
+      if (error.code === 'auth/email-already-in-use') {
+        errorMessage = "An account with this email already exists.";
+      } else if (error.code === 'auth/api-key-not-valid') {
+        errorMessage = "The Firebase API key is invalid. Please check your .env.local file and restart the application.";
+      }
       toast({ title: "Signup Failed", description: errorMessage, variant: "destructive" });
     } finally {
       setLoading(false);
