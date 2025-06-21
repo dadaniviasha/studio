@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
+import QRCode from 'qrcode';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppFooter } from '@/components/layout/AppFooter';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -46,6 +47,7 @@ export default function WalletPage() {
   const [depositAmount, setDepositAmount] = useState('');
   const [withdrawalAmount, setWithdrawalAmount] = useState('');
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState('');
   const { toast } = useToast();
 
   const currentBalance = currentUser ? currentUser.walletBalance : 0;
@@ -66,6 +68,22 @@ export default function WalletPage() {
         setTransactions(dummyTransactions);
     }
 }, [currentUser]);
+
+ useEffect(() => {
+    const amount = parseFloat(depositAmount);
+    if (!isNaN(amount) && amount >= MIN_DEPOSIT_AMOUNT) {
+      // NOTE: This is a dummy UPI address for demonstration purposes.
+      const upiString = `upi://pay?pa=payee-vpa@example&pn=Crotos%20Game&am=${amount.toFixed(2)}&cu=INR&tn=Crotos%20Deposit`;
+      QRCode.toDataURL(upiString)
+        .then(setQrCodeDataUrl)
+        .catch(err => {
+          console.error("QR Code generation failed:", err);
+          setQrCodeDataUrl('');
+        });
+    } else {
+      setQrCodeDataUrl('');
+    }
+  }, [depositAmount]);
 
   const handleDeposit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -164,30 +182,12 @@ export default function WalletPage() {
               <CardTitle className="flex items-center text-xl font-headline text-green-500">
                 <ArrowDownCircle className="mr-2 h-6 w-6" /> Deposit Funds
               </CardTitle>
-              <CardDescription>Scan the QR and enter the amount, then click "I Have Paid".</CardDescription>
+              <CardDescription>Enter an amount, scan the QR code, then confirm payment.</CardDescription>
             </CardHeader>
             <form onSubmit={handleDeposit}>
-              <CardContent className="space-y-4">
-                 <div className="flex flex-col items-center gap-4 p-4 rounded-lg bg-background/50">
-                    <p className="text-sm text-center text-muted-foreground">
-                      1. Scan this QR code to pay with your UPI app.
-                    </p>
-                    <div className="bg-white p-2 rounded-lg">
-                       <Image
-                        src="https://placehold.co/250x250.png"
-                        alt="Your Payment QR Code Scanner"
-                        width={250}
-                        height={250}
-                        className="rounded-md"
-                        data-ai-hint="qr code"
-                      />
-                    </div>
-                     <p className="text-xs text-muted-foreground text-center">
-                      Your QR code should appear here. This is a placeholder.
-                    </p>
-                  </div>
-                <div>
-                  <Label htmlFor="depositAmount">2. Enter Amount (₹)</Label>
+              <CardContent className="space-y-6">
+                 <div className="space-y-2">
+                  <Label htmlFor="depositAmount">1. Amount to Deposit (₹)</Label>
                   <div className="relative mt-1">
                     <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                     <Input
@@ -201,10 +201,30 @@ export default function WalletPage() {
                     />
                   </div>
                 </div>
+                 <div className="space-y-2">
+                    <Label>2. Scan QR Code to Pay</Label>
+                    <div className="flex flex-col items-center justify-center gap-2 p-4 rounded-lg bg-background/50 border">
+                        <div className="bg-white p-2 rounded-lg w-[266px] h-[266px] flex items-center justify-center shadow-md">
+                        {qrCodeDataUrl ? (
+                            <Image
+                                src={qrCodeDataUrl}
+                                alt="Generated UPI Payment QR Code"
+                                width={250}
+                                height={250}
+                                className="rounded-sm"
+                            />
+                        ) : (
+                            <div className="text-center text-muted-foreground text-sm p-4">
+                                <p>Enter a valid amount above to generate a QR code.</p>
+                            </div>
+                        )}
+                        </div>
+                    </div>
+                </div>
               </CardContent>
               <CardFooter>
                 <Button type="submit" className="w-full h-12 bg-green-500 hover:bg-green-600 text-white">
-                  I Have Paid
+                  3. I Have Paid
                 </Button>
               </CardFooter>
             </form>
