@@ -27,6 +27,8 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'admin@example.com';
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -64,7 +66,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
 
           if (appUserDoc) {
-            setCurrentUser(appUserDoc);
+            const userWithAdminStatus: User = {
+              ...appUserDoc,
+              isAdmin: firebaseUser.email === ADMIN_EMAIL,
+            };
+            setCurrentUser(userWithAdminStatus);
           } else {
              // This case is unlikely if creation is successful, but good to have a fallback.
              setCurrentUser(null);
@@ -100,8 +106,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, passwordAttempt);
+      const isAdmin = userCredential.user.email === ADMIN_EMAIL;
       toast({ title: "Login Successful", description: `Welcome back, ${userCredential.user.displayName || 'user'}!` });
-      router.push('/');
+      router.push(isAdmin ? '/admin' : '/');
     } catch (error: any) {
       console.error("Firebase login error:", error);
       let description = "An unexpected error occurred. Please try again.";

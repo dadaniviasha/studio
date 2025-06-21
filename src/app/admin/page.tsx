@@ -58,8 +58,8 @@ export default function AdminPage() {
     );
   }
 
-  // Basic access control simulation - in a real app, this would be role-based and secure
-  if (!currentUser || currentUser.email !== 'admin@example.com') { // Example admin email
+  // Use the new isAdmin flag from the AuthContext for secure, role-based access.
+  if (!currentUser || !currentUser.isAdmin) { 
      return (
       <div className="flex flex-col min-h-screen bg-background text-foreground">
         <AppHeader />

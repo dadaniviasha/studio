@@ -15,10 +15,9 @@ export function AppHeader() {
   const { currentUser, logout, loading } = useAuth();
 
   const navItems = [
-    { href: '/', label: 'Game', icon: Zap, requiresAuth: false },
-    { href: '/wallet', label: 'Wallet', icon: Wallet, requiresAuth: true },
-    // Admin link visibility could be tied to user roles in a real app
-    { href: '/admin', label: 'Admin Panel', icon: UserCog, requiresAuth: false, adminRoute: true }, 
+    { href: '/', label: 'Game', icon: Zap, requiresAuth: false, adminRoute: false },
+    { href: '/wallet', label: 'Wallet', icon: Wallet, requiresAuth: true, adminRoute: false },
+    { href: '/admin', label: 'Admin Panel', icon: UserCog, requiresAuth: true, adminRoute: true }, 
   ];
 
   const getInitials = (name: string = "") => {
@@ -36,8 +35,7 @@ export function AppHeader() {
         <nav className="hidden md:flex items-center space-x-1 lg:space-x-2">
           {navItems.map((item) => {
             if (item.requiresAuth && !currentUser) return null;
-            // A simple way to hide admin link if not a specific user, or just show it
-            // if (item.adminRoute && (!currentUser || currentUser.email !== "admin@example.com")) return null;
+            if (item.adminRoute && !currentUser?.isAdmin) return null;
 
             return (
               <Link
