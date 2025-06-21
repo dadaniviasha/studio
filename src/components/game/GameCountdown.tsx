@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { TimerIcon } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { GAME_ROUND_DURATION_SECONDS } from '@/lib/constants';
 
 interface GameCountdownProps {
   onTimerEnd: () => void;
@@ -14,31 +15,39 @@ interface GameCountdownProps {
 }
 
 const calculateTimeLeft = (endTime: number) => {
+    if (!endTime || endTime === 0) return GAME_ROUND_DURATION_SECONDS;
     const now = Date.now();
     const timeLeft = Math.round((endTime - now) / 1000);
     return Math.max(0, timeLeft);
 };
 
 export function GameCountdown({ onTimerEnd, isProcessing = false, roundId, endTime }: GameCountdownProps) {
-  const [timeLeft, setTimeLeft] = useState(() => calculateTimeLeft(endTime));
+  // Initialize with a static value to prevent hydration mismatch
+  const [timeLeft, setTimeLeft] = useState(GAME_ROUND_DURATION_SECONDS);
 
-  const totalDuration = (endTime - (endTime - 30 * 1000)) / 1000; // Recalculate duration based on endTime
+  const totalDuration = GAME_ROUND_DURATION_SECONDS;
 
   useEffect(() => {
-    setTimeLeft(calculateTimeLeft(endTime)); // Initialize timer with correct value
-    
-    if (isProcessing) return;
+    // Don't run the timer if processing, or if endTime hasn't been set yet (from initial client hydration)
+    if (isProcessing || !endTime) {
+      if (isProcessing) {
+        setTimeLeft(0);
+      }
+      return;
+    }
+
+    // Set the initial correct time when endTime is available
+    setTimeLeft(calculateTimeLeft(endTime));
 
     const timer = setInterval(() => {
-      setTimeLeft(prevTime => {
-        const newTimeLeft = calculateTimeLeft(endTime);
-        if (newTimeLeft <= 0) {
-          clearInterval(timer);
-          onTimerEnd();
-          return 0;
-        }
-        return newTimeLeft;
-      });
+      const newTimeLeft = calculateTimeLeft(endTime);
+      if (newTimeLeft <= 0) {
+        clearInterval(timer);
+        onTimerEnd();
+        setTimeLeft(0);
+      } else {
+        setTimeLeft(newTimeLeft);
+      }
     }, 1000);
 
     return () => clearInterval(timer);

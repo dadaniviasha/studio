@@ -28,62 +28,21 @@ const ROUND_ID_STORAGE_KEY = 'CROTOS_CURRENT_ROUND_ID'; // Kept for admin panel 
 const ACTIVE_BETS_STORAGE_KEY = 'CROTOS_ACTIVE_BETS';
 const ROUND_STORAGE_KEY = 'CROTOS_CURRENT_ROUND';
 
-const getInitialActiveBets = (): BetType[] => {
-    if (typeof window === 'undefined') return [];
-    try {
-        const storedBets = localStorage.getItem(ACTIVE_BETS_STORAGE_KEY);
-        return storedBets ? JSON.parse(storedBets) : [];
-    } catch (error) {
-        console.error("Could not load active bets from localStorage:", error);
-        localStorage.removeItem(ACTIVE_BETS_STORAGE_KEY); // Clear corrupted data
-        return [];
-    }
-};
-
-const getInitialRound = (): GameRound => {
-    if (typeof window === 'undefined') {
-        // Return a default round for server-side rendering
-        return {
-            id: '1',
-            startTime: Date.now(),
-            endTime: Date.now() + GAME_ROUND_DURATION_SECONDS * 1000,
-            status: 'betting'
-        };
-    }
-    try {
-        const storedRoundJSON = localStorage.getItem(ROUND_STORAGE_KEY);
-        if (storedRoundJSON) {
-            const storedRound: GameRound = JSON.parse(storedRoundJSON);
-            // Check if the stored round is still valid (its end time is in the future)
-            if (storedRound.endTime > Date.now()) {
-                return storedRound;
-            }
-        }
-    } catch (error) {
-        console.error("Failed to load round from localStorage", error);
-        localStorage.removeItem(ROUND_STORAGE_KEY); // Clear potentially corrupted data
-    }
-
-    // If no valid round in storage, create a new one.
-    const newRound: GameRound = {
-        // Using a timestamp-based ID is more robust across sessions than a simple counter.
-        id: `r_${Math.floor(Date.now() / 1000)}`,
-        startTime: Date.now(),
-        endTime: Date.now() + GAME_ROUND_DURATION_SECONDS * 1000,
-        status: 'betting'
-    };
-    localStorage.setItem(ROUND_STORAGE_KEY, JSON.stringify(newRound));
-    return newRound;
-};
-
-
 export default function HomePage() {
   const { currentUser, updateBalance: updateAuthBalance, loading: authLoading } = useAuth();
   const [currentResult, setCurrentResult] = useState<GameResult | null>(null);
   const [resultHistory, setResultHistory] = useState<GameResult[]>([]);
   const [isBettingPhase, setIsBettingPhase] = useState(true);
-  const [activeBets, setActiveBets] = useState<BetType[]>(getInitialActiveBets);
-  
+
+  // Initialize state with server-safe defaults to prevent hydration errors
+  const [activeBets, setActiveBets] = useState<BetType[]>([]);
+  const [round, setRound] = useState<GameRound>({
+    id: '...',
+    startTime: 0,
+    endTime: 0,
+    status: 'betting'
+  });
+
   const [currentDisplayedBalance, setCurrentDisplayedBalance] = useState<number>(GUEST_INITIAL_BALANCE);
   
   // Create refs to hold the latest values of state, preventing the timer from resetting.
@@ -99,7 +58,6 @@ export default function HomePage() {
 
   const processingEndRef = useRef(false); // Ref to prevent duplicate round end processing
 
-  const [round, setRound] = useState<GameRound>(getInitialRound);
   const { toast } = useToast();
 
   const roundRef = useRef(round);
@@ -110,6 +68,49 @@ export default function HomePage() {
   const betPlacedSoundRef = useRef<HTMLAudioElement | null>(null);
   const winSoundRef = useRef<HTMLAudioElement | null>(null);
   const loseSoundRef = useRef<HTMLAudioElement | null>(null);
+
+  // This effect runs only on the client after the initial render to safely access localStorage
+  useEffect(() => {
+    // Function to get the round state from localStorage or create a new one
+    const getInitialRound = (): GameRound => {
+      try {
+        const storedRoundJSON = localStorage.getItem(ROUND_STORAGE_KEY);
+        if (storedRoundJSON) {
+          const storedRound: GameRound = JSON.parse(storedRoundJSON);
+          if (storedRound.endTime > Date.now()) {
+            return storedRound;
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load round from localStorage", error);
+        localStorage.removeItem(ROUND_STORAGE_KEY);
+      }
+      const newRound: GameRound = {
+        id: `r_${Math.floor(Date.now() / 1000)}`,
+        startTime: Date.now(),
+        endTime: Date.now() + GAME_ROUND_DURATION_SECONDS * 1000,
+        status: 'betting'
+      };
+      localStorage.setItem(ROUND_STORAGE_KEY, JSON.stringify(newRound));
+      return newRound;
+    };
+
+    // Function to get active bets from localStorage
+    const getInitialActiveBets = (): BetType[] => {
+      try {
+        const storedBets = localStorage.getItem(ACTIVE_BETS_STORAGE_KEY);
+        return storedBets ? JSON.parse(storedBets) : [];
+      } catch (error) {
+        console.error("Could not load active bets from localStorage:", error);
+        localStorage.removeItem(ACTIVE_BETS_STORAGE_KEY);
+        return [];
+      }
+    };
+    
+    setRound(getInitialRound());
+    setActiveBets(getInitialActiveBets());
+  }, []);
+
 
   useEffect(() => {
     if (!authLoading) {
@@ -124,6 +125,8 @@ export default function HomePage() {
   // This effect syncs the entire round object to localStorage whenever it changes.
   // This makes the timer persistent across page navigations.
   useEffect(() => {
+    // Only run on client after initial state has been set
+    if (round.startTime === 0) return;
     try {
       localStorage.setItem(ROUND_STORAGE_KEY, JSON.stringify(round));
       // For compatibility with the admin panel, also set the simple ID key
