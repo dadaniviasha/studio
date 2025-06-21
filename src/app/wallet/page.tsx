@@ -2,7 +2,6 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import Image from 'next/image';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppFooter } from '@/components/layout/AppFooter';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -167,9 +166,8 @@ export default function WalletPage() {
                   <p className="text-sm text-center text-muted-foreground">
                     Scan the QR code below to add funds.
                   </p>
-                  <Image
+                  <img
                     src="https://placehold.co/250x250.png"
-                    data-ai-hint="qr code"
                     alt="Payment QR Code"
                     width="250"
                     height="250"
