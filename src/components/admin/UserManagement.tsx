@@ -9,17 +9,19 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
-import { Users, Edit, DollarSign, ShieldCheck } from 'lucide-react';
+import { Users, Edit, DollarSign, ShieldCheck, AlertTriangle } from 'lucide-react';
 import type { User } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { getAllUsersAction, updateUserBalanceAction } from '@/server/actions';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export function UserManagement() {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [newBalance, setNewBalance] = useState('');
@@ -27,22 +29,26 @@ export function UserManagement() {
 
   useEffect(() => {
     async function fetchUsers() {
+      setIsLoading(true);
+      setFetchError(null);
       try {
         const userList = await getAllUsersAction();
         setUsers(userList);
-      } catch (error) {
-        toast({
-          title: "Error fetching users",
-          description: "Could not load the list of users.",
-          variant: "destructive",
-        });
+      } catch (error: any) {
+        let description = "An unexpected error occurred. Could not load the list of users.";
+
+        if (error?.message && (error.message.includes('insufficient permissions') || error.message.includes('permission-denied'))) {
+            description = "You do not have permission to view the user list. This is a common setup issue caused by Firestore's Security Rules. To fix this, please open the `PROPOSED_FIRESTORE_RULES.md` file in your project and follow the instructions to update the rules in your Firebase Console.";
+        }
+        
+        setFetchError(description);
         console.error("Failed to fetch users:", error);
       } finally {
         setIsLoading(false);
       }
     }
     fetchUsers();
-  }, [toast]);
+  }, []);
 
   const handleEditClick = (user: User) => {
     setSelectedUser(user);
@@ -70,9 +76,8 @@ export function UserManagement() {
         title: "Balance Updated",
         description: `${selectedUser.username}'s balance has been set to ₹${balanceValue.toFixed(2)}.`,
       });
-      // Update local state to reflect the change immediately
       setUsers(users.map(u => u.id === selectedUser.id ? { ...u, walletBalance: balanceValue } : u));
-      setIsDialogOpen(false); // Close the dialog on success
+      setIsDialogOpen(false);
     } else {
       toast({
         title: "Update Failed",
@@ -92,6 +97,15 @@ export function UserManagement() {
           <CardDescription>View user accounts and manage their wallet balances.</CardDescription>
         </CardHeader>
         <CardContent>
+          {fetchError && (
+             <Alert variant="destructive" className="mb-4">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Access Error</AlertTitle>
+              <AlertDescription>
+                {fetchError}
+              </AlertDescription>
+            </Alert>
+          )}
           <ScrollArea className="h-[400px] w-full border rounded-md">
             <Table>
               <TableHeader>
@@ -137,13 +151,13 @@ export function UserManagement() {
                       </TableCell>
                     </TableRow>
                   ))
-                ) : (
+                ) : !fetchError ? (
                   <TableRow>
                     <TableCell colSpan={5} className="h-24 text-center">
                       No users found.
                     </TableCell>
                   </TableRow>
-                )}
+                ) : null}
               </TableBody>
             </Table>
           </ScrollArea>
