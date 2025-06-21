@@ -63,13 +63,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             await createUserDocument(firebaseUser); 
             appUserDoc = await getUserDocument(firebaseUser.uid);
           } else {
-            // FIX: If doc exists, check if user *should* be admin but isn't.
-            // This is a one-time correction for existing accounts that logs in.
+            const userRef = doc(db, 'users', firebaseUser.uid);
+            // Self-healing logic: ensure isAdmin flag is always correct based on email.
+            // Case 1: User IS the admin, but flag is false. Set it to true.
             if (firebaseUser.email === ADMIN_EMAIL && !appUserDoc.isAdmin) {
-                console.log(`Correcting admin status for ${firebaseUser.email}...`);
-                const userRef = doc(db, 'users', firebaseUser.uid);
+                console.log(`Correcting admin status for ${firebaseUser.email} (granting).`);
                 await updateDoc(userRef, { isAdmin: true });
-                appUserDoc.isAdmin = true; // Update the local copy as well
+                appUserDoc.isAdmin = true; // Update local copy
+            } 
+            // Case 2: User is NOT the admin, but flag is true. Set it to false.
+            else if (firebaseUser.email !== ADMIN_EMAIL && appUserDoc.isAdmin) {
+                console.log(`Correcting admin status for ${firebaseUser.email} (revoking).`);
+                await updateDoc(userRef, { isAdmin: false });
+                appUserDoc.isAdmin = false; // Update local copy
             }
           }
 
