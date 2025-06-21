@@ -16,7 +16,7 @@ export interface Bet {
 
 export interface GameResult {
   roundId: string;
-  /** The independently determined winning color for the round. If winningNumber is 0 or 5, this will be VIOLET. */
+  /** If winningNumber is 0 or 5, this will be VIOLET. Otherwise, it is determined independently. */
   winningColor: ColorOption;
   winningNumber: NumberOption;
   timestamp: number;
@@ -24,11 +24,10 @@ export interface GameResult {
 }
 
 export interface User {
-  id: string;
-  username: string;
-  email: string; // Added for auth
-  walletBalance: number;
-  // Password is not stored here for actual use, but might be used in simulation context
+  id: string; // This will be the Firebase UID
+  username: string; // This will be the Firebase displayName
+  email: string;
+  walletBalance: number; // This would typically be stored in Firestore, not on the auth object
 }
 
 export interface WalletTransaction {

@@ -5,6 +5,15 @@ import type { User } from '@/lib/types';
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
+import { 
+  onAuthStateChanged, 
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword, 
+  signOut, 
+  updateProfile,
+  type User as FirebaseUser 
+} from 'firebase/auth';
+import { auth, FBCONFIG_MISSING } from '@/lib/firebase/config';
 
 const SIGNUP_BONUS = 50;
 
@@ -26,94 +35,113 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const router = useRouter();
 
   useEffect(() => {
-    // Simulate loading user from localStorage on initial load
-    setLoading(true);
-    try {
-      const storedUser = localStorage.getItem('currentUser');
-      const storedPassword = localStorage.getItem('currentUserPassword'); // Highly insecure, for prototype only
-      if (storedUser && storedPassword) {
-        const parsedUser = JSON.parse(storedUser) as User;
-        // In a real app, you'd verify a token here, not just load from localStorage
-        setCurrentUser(parsedUser);
-      }
-    } catch (error) {
-      console.error("Failed to load user from localStorage", error);
-      localStorage.removeItem('currentUser');
-      localStorage.removeItem('currentUserPassword');
+    if (FBCONFIG_MISSING) {
+      toast({
+        title: "Firebase Not Configured",
+        description: "Please provide Firebase config in .env.local to enable authentication.",
+        variant: "destructive",
+        duration: 10000,
+      });
+      setLoading(false);
+      return;
     }
-    setLoading(false);
-  }, []);
+
+    if (!auth) {
+        setLoading(false);
+        return;
+    }
+    
+    setLoading(true);
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
+      if (firebaseUser) {
+        // User is signed in.
+        // This is a good place to fetch more user data from Firestore if you have it.
+        // For now, we'll use localStorage for the wallet balance as a bridge.
+        const walletBalanceStr = localStorage.getItem(`wallet-${firebaseUser.uid}`);
+        const walletBalance = walletBalanceStr ? parseFloat(walletBalanceStr) : SIGNUP_BONUS;
+
+        const appUser: User = {
+          id: firebaseUser.uid,
+          username: firebaseUser.displayName || 'User',
+          email: firebaseUser.email || '',
+          walletBalance,
+        };
+        setCurrentUser(appUser);
+      } else {
+        // User is signed out.
+        setCurrentUser(null);
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [toast]);
 
   const login = useCallback(async (email: string, passwordAttempt: string) => {
+    if (FBCONFIG_MISSING || !auth) return;
     setLoading(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 500));
-    const storedUser = localStorage.getItem('currentUser');
-    const storedPassword = localStorage.getItem('currentUserPassword'); // Highly insecure
-
-    if (storedUser && storedPassword) {
-      const parsedUser = JSON.parse(storedUser) as User;
-      if (parsedUser.email === email && storedPassword === passwordAttempt) {
-        setCurrentUser(parsedUser);
-        toast({ title: "Login Successful", description: `Welcome back, ${parsedUser.username}!` });
-        router.push('/');
-      } else {
-        toast({ title: "Login Failed", description: "Invalid email or password.", variant: "destructive" });
-      }
-    } else {
-      toast({ title: "Login Failed", description: "No user found. Please sign up.", variant: "destructive" });
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, passwordAttempt);
+      toast({ title: "Login Successful", description: `Welcome back, ${userCredential.user.displayName || 'user'}!` });
+      router.push('/');
+    } catch (error: any) {
+      console.error("Firebase login error:", error);
+      toast({ title: "Login Failed", description: "Invalid email or password.", variant: "destructive" });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [toast, router]);
 
   const signup = useCallback(async (username: string, email: string, passwordRaw: string) => {
+    if (FBCONFIG_MISSING || !auth) return;
     setLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 500));
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, passwordRaw);
+      // After creating the user, update their profile with the username
+      await updateProfile(userCredential.user, { displayName: username });
 
-    // Check if user already exists (by email, for simulation)
-    const existingUser = localStorage.getItem('currentUser');
-    if (existingUser) {
-        try {
-            const parsedExistingUser = JSON.parse(existingUser) as User;
-            if (parsedExistingUser.email === email) {
-                toast({ title: "Signup Failed", description: "An account with this email already exists.", variant: "destructive" });
-                setLoading(false);
-                return;
-            }
-        } catch (e) {
-            // If parsing fails, proceed to create new user (overwrite)
-            console.warn("Error parsing existing user, proceeding with signup.");
-        }
+      // Initialize wallet balance in localStorage (as a temporary measure)
+      localStorage.setItem(`wallet-${userCredential.user.uid}`, SIGNUP_BONUS.toString());
+      
+      const appUser: User = {
+        id: userCredential.user.uid,
+        username: username,
+        email: email,
+        walletBalance: SIGNUP_BONUS,
+      };
+      setCurrentUser(appUser); // Manually set user for immediate UI update
+
+      toast({ title: "Signup Successful", description: `Welcome, ${username}! You've received a ₹${SIGNUP_BONUS} bonus.` });
+      router.push('/');
+    } catch (error: any) {
+      console.error("Firebase signup error:", error);
+      const errorMessage = error.code === 'auth/email-already-in-use' 
+        ? "An account with this email already exists." 
+        : "Failed to sign up. Please try again.";
+      toast({ title: "Signup Failed", description: errorMessage, variant: "destructive" });
+    } finally {
+      setLoading(false);
     }
-
-
-    const newUser: User = {
-      id: `user_${Date.now()}`,
-      username,
-      email,
-      walletBalance: SIGNUP_BONUS, // Start with signup bonus
-    };
-    localStorage.setItem('currentUser', JSON.stringify(newUser));
-    localStorage.setItem('currentUserPassword', passwordRaw); // Highly insecure
-    setCurrentUser(newUser);
-    toast({ title: "Signup Successful", description: `Welcome, ${username}! You've received a ₹${SIGNUP_BONUS} bonus.` });
-    router.push('/');
-    setLoading(false);
   }, [toast, router]);
 
-  const logout = useCallback(() => {
-    setCurrentUser(null);
-    localStorage.removeItem('currentUser');
-    localStorage.removeItem('currentUserPassword');
-    toast({ title: "Logged Out", description: "You have been successfully logged out." });
-    router.push('/login');
+  const logout = useCallback(async () => {
+    if (FBCONFIG_MISSING || !auth) return;
+    try {
+      await signOut(auth);
+      toast({ title: "Logged Out", description: "You have been successfully logged out." });
+      router.push('/login');
+    } catch (error) {
+      console.error("Firebase logout error:", error);
+      toast({ title: "Logout Failed", description: "Could not log out. Please try again.", variant: "destructive" });
+    }
   }, [toast, router]);
 
   const updateBalance = useCallback((newBalance: number) => {
     if (currentUser) {
       const updatedUser = { ...currentUser, walletBalance: newBalance };
       setCurrentUser(updatedUser);
-      localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+      // Persist the new balance in localStorage (temporary)
+      localStorage.setItem(`wallet-${currentUser.id}`, newBalance.toString());
     }
   }, [currentUser]);
 
