@@ -20,18 +20,26 @@ export default function AdminPage() {
   const { toast } = useToast();
   const { currentUser, loading: authLoading } = useAuth();
   
-  const handleSetNextResult = (result: Partial<GameResult>) => {
-    if (result.winningNumber === undefined || result.winningColor === undefined) {
-      console.error("Admin attempted to set an incomplete result:", result);
-      toast({
-        title: "Error: Incomplete Result Data",
-        description: "Both winning number and color must be specified.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
+  // This function now handles setting a manual result, or clearing it.
+  const handleSetNextResult = (result: Partial<GameResult> | null) => {
     try {
+      if (result === null) {
+        // If null is passed, clear any existing override.
+        localStorage.removeItem(ADMIN_RESULT_STORAGE_KEY);
+        // Toast is now handled in the controller.
+        return;
+      }
+
+      if (result.winningNumber === undefined || result.winningColor === undefined) {
+        console.error("Admin attempted to set an incomplete result:", result);
+        toast({
+          title: "Error: Incomplete Result Data",
+          description: "Both winning number and color must be specified.",
+          variant: "destructive",
+        });
+        return;
+      }
+    
       const resultToStore = {
         winningNumber: result.winningNumber,
         winningColor: result.winningColor,
