@@ -20,6 +20,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Separator } from '@/components/ui/separator';
 
 const getTransactionIcon = (type: WalletTransaction['type']) => {
   const iconClasses = "h-5 w-5";
@@ -48,6 +50,8 @@ export default function WalletPage() {
   const [withdrawalAmount, setWithdrawalAmount] = useState('');
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState('');
+  const [upiLink, setUpiLink] = useState('');
+  const isMobile = useIsMobile();
   const { toast } = useToast();
 
   const currentBalance = currentUser ? currentUser.walletBalance : 0;
@@ -74,14 +78,17 @@ export default function WalletPage() {
     if (!isNaN(amount) && amount >= MIN_DEPOSIT_AMOUNT) {
       // NOTE: This is a dummy UPI address for demonstration purposes.
       const upiString = `upi://pay?pa=payee-vpa@example&pn=Crotos%20Game&am=${amount.toFixed(2)}&cu=INR&tn=Crotos%20Deposit`;
+      setUpiLink(upiString);
       QRCode.toDataURL(upiString)
         .then(setQrCodeDataUrl)
         .catch(err => {
           console.error("QR Code generation failed:", err);
           setQrCodeDataUrl('');
+          setUpiLink('');
         });
     } else {
       setQrCodeDataUrl('');
+      setUpiLink('');
     }
   }, [depositAmount]);
 
@@ -182,7 +189,7 @@ export default function WalletPage() {
               <CardTitle className="flex items-center text-xl font-headline text-green-500">
                 <ArrowDownCircle className="mr-2 h-6 w-6" /> Deposit Funds
               </CardTitle>
-              <CardDescription>Enter an amount, scan the QR code, then confirm payment.</CardDescription>
+              <CardDescription>Enter an amount, then scan the QR code or tap the button to pay.</CardDescription>
             </CardHeader>
             <form onSubmit={handleDeposit}>
               <CardContent className="space-y-6">
@@ -202,7 +209,7 @@ export default function WalletPage() {
                   </div>
                 </div>
                  <div className="space-y-2">
-                    <Label>2. Scan QR Code to Pay</Label>
+                    <Label>2. Scan or Tap to Pay</Label>
                     <div className="flex flex-col items-center justify-center gap-2 p-4 rounded-lg bg-background/50 border">
                         <div className="bg-white p-2 rounded-lg w-[266px] h-[266px] flex items-center justify-center shadow-md">
                         {qrCodeDataUrl ? (
@@ -219,6 +226,21 @@ export default function WalletPage() {
                             </div>
                         )}
                         </div>
+                        {isMobile && upiLink && (
+                          <>
+                            <div className="flex items-center w-full my-2">
+                                <Separator className="flex-1" />
+                                <span className="px-2 text-xs uppercase text-muted-foreground">Or</span>
+                                <Separator className="flex-1" />
+                            </div>
+                            <Link href={upiLink} passHref className="w-full">
+                                <Button variant="secondary" className="w-full h-12 text-base">
+                                    <WalletCards className="mr-2 h-5 w-5" />
+                                    Pay with UPI App
+                                </Button>
+                            </Link>
+                          </>
+                        )}
                     </div>
                 </div>
               </CardContent>
@@ -323,5 +345,3 @@ export default function WalletPage() {
     </div>
   );
 }
-
-    
