@@ -38,7 +38,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (FBCONFIG_MISSING) {
       toast({
         title: "Firebase Not Configured",
-        description: "Please provide Firebase config in .env.local to enable authentication.",
+        description: "Your Firebase keys seem to be missing. If you've just added them to your .env.local file, please restart the development server.",
         variant: "destructive",
         duration: 10000,
       });
