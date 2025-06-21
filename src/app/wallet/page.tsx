@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppFooter } from '@/components/layout/AppFooter';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -119,8 +120,23 @@ export default function WalletPage() {
             </CardHeader>
             <form onSubmit={handleDeposit}>
               <CardContent className="space-y-4">
+                 <div className="flex flex-col items-center gap-4 p-4 rounded-lg bg-background/50">
+                  <p className="text-sm text-center text-muted-foreground">
+                    Scan the QR code below to add funds.
+                    <br />
+                    <span className="font-bold">(This is a simulation)</span>
+                  </p>
+                  <Image
+                    src="https://placehold.co/250x250.png"
+                    alt="Payment QR Code"
+                    width={250}
+                    height={250}
+                    data-ai-hint="payment qrcode"
+                    className="rounded-lg"
+                  />
+                </div>
                 <div>
-                  <Label htmlFor="depositAmount">Amount (₹)</Label>
+                  <Label htmlFor="depositAmount">Or Enter Amount (₹)</Label>
                   <div className="relative mt-1">
                     <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                     <Input
@@ -137,7 +153,7 @@ export default function WalletPage() {
               </CardContent>
               <CardFooter>
                 <Button type="submit" className="w-full h-12 bg-green-500 hover:bg-green-600 text-white">
-                  Deposit
+                  Confirm Deposit
                 </Button>
               </CardFooter>
             </form>
