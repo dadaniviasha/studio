@@ -14,8 +14,7 @@ import {
   type User as FirebaseUser 
 } from 'firebase/auth';
 import { auth, FBCONFIG_MISSING } from '@/lib/firebase/config';
-
-const SIGNUP_BONUS = 50;
+import { createUserDocument, getUserDocument, updateUserBalanceInDb } from '@/lib/firebase/firestore';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -38,7 +37,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (FBCONFIG_MISSING) {
       toast({
         title: "Firebase Not Configured",
-        description: "Your Firebase keys seem to be missing. If you've just added them to your .env.local file, please restart the development server.",
+        description: "Your Firebase keys are missing. If you've just added them, please restart the development server.",
         variant: "destructive",
         duration: 10000,
       });
@@ -52,21 +51,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     
     setLoading(true);
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
       if (firebaseUser) {
-        // User is signed in.
-        // This is a good place to fetch more user data from Firestore if you have it.
-        // For now, we'll use localStorage for the wallet balance as a bridge.
-        const walletBalanceStr = localStorage.getItem(`wallet-${firebaseUser.uid}`);
-        const walletBalance = walletBalanceStr ? parseFloat(walletBalanceStr) : SIGNUP_BONUS;
+        // User is signed in, fetch their document from Firestore.
+        let appUserDoc = await getUserDocument(firebaseUser.uid);
+        
+        // This is a fallback for robustness: if a user exists in Auth but not Firestore, create their doc.
+        if (!appUserDoc) {
+          await createUserDocument(firebaseUser);
+          appUserDoc = await getUserDocument(firebaseUser.uid);
+        }
 
-        const appUser: User = {
-          id: firebaseUser.uid,
-          username: firebaseUser.displayName || 'User',
-          email: firebaseUser.email || '',
-          walletBalance,
-        };
-        setCurrentUser(appUser);
+        if (appUserDoc) {
+          setCurrentUser(appUserDoc);
+        } else {
+           setCurrentUser(null);
+           toast({ title: "Login Error", description: "Could not retrieve your user data. Please try again.", variant: "destructive" });
+        }
       } else {
         // User is signed out.
         setCurrentUser(null);
@@ -97,23 +98,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, passwordRaw);
-      // After creating the user, update their profile with the username
       await updateProfile(userCredential.user, { displayName: username });
+      // Create user document in Firestore. The onAuthStateChanged listener will then pick it up.
+      await createUserDocument(userCredential.user);
 
-      // Initialize wallet balance in localStorage (as a temporary measure)
-      localStorage.setItem(`wallet-${userCredential.user.uid}`, SIGNUP_BONUS.toString());
-      
-      const appUser: User = {
-        id: userCredential.user.uid,
-        username: username,
-        email: email,
-        walletBalance: SIGNUP_BONUS,
-      };
-      setCurrentUser(appUser); // Manually set user for immediate UI update
-
-      toast({ title: "Signup Successful", description: `Welcome, ${username}! You've received a ₹${SIGNUP_BONUS} bonus.` });
+      toast({ title: "Signup Successful", description: `Welcome, ${username}!` });
       router.push('/');
-    } catch (error: any) {
+    } catch (error: any)
+     {
       console.error("Firebase signup error:", error);
       const errorMessage = error.code === 'auth/email-already-in-use' 
         ? "An account with this email already exists." 
@@ -136,14 +128,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [toast, router]);
 
-  const updateBalance = useCallback((newBalance: number) => {
+  const updateBalance = useCallback(async (newBalance: number) => {
     if (currentUser) {
-      const updatedUser = { ...currentUser, walletBalance: newBalance };
-      setCurrentUser(updatedUser);
-      // Persist the new balance in localStorage (temporary)
-      localStorage.setItem(`wallet-${currentUser.id}`, newBalance.toString());
+      // Optimistic UI update
+      setCurrentUser(prevUser => prevUser ? { ...prevUser, walletBalance: newBalance } : null);
+      
+      // Persist the new balance in Firestore
+      try {
+        await updateUserBalanceInDb(currentUser.id, newBalance);
+      } catch (error) {
+        console.error("Failed to update balance in Firestore:", error);
+        // Optional: Revert UI change and show error
+        toast({ title: "Sync Error", description: "Failed to save new balance. Please refresh.", variant: "destructive" });
+      }
     }
-  }, [currentUser]);
+  }, [currentUser, toast]);
 
 
   return (
