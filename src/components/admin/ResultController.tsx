@@ -41,6 +41,10 @@ export function ResultController({ onSetResult }: ResultControllerProps) {
 
     onSetResult(resultToSet);
     toast({ title: "Result Override Set", description: `The next round will be Number: ${resultToSet.winningNumber}, Color: ${resultToSet.winningColor}.` });
+    
+    // Clear the fields for better UX
+    setManualColor('');
+    setManualNumber('');
   };
 
   return (

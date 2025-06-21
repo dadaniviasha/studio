@@ -13,6 +13,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
+const ADMIN_RESULT_STORAGE_KEY = 'CROTOS_ADMIN_RESULT_OVERRIDE';
+
 export default function AdminPage() {
   const { toast } = useToast();
   const { currentUser, loading: authLoading } = useAuth();
@@ -28,16 +30,13 @@ export default function AdminPage() {
       return;
     }
     
-    // Store a simplified version of the result in localStorage
     try {
       const resultToStore = {
         winningNumber: result.winningNumber,
         winningColor: result.winningColor,
       };
-      localStorage.setItem('adminDefinedNextResult', JSON.stringify(resultToStore));
-      console.log("Admin set next result, stored in localStorage:", resultToStore);
-      // The toast notification is now handled within the ResultController component itself
-      // to provide direct feedback to the admin upon clicking the button.
+      localStorage.setItem(ADMIN_RESULT_STORAGE_KEY, JSON.stringify(resultToStore));
+      // Toast notification is now handled within the ResultController component itself.
     } catch (error) {
       console.error("Error saving admin result to localStorage:", error);
       toast({

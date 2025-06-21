@@ -25,6 +25,8 @@ const SILENT_SOUND_PLACEHOLDER = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAA
 
 const GUEST_USER_ID = "guest_user";
 const GUEST_INITIAL_BALANCE = 200; // Give guests some play money
+const ADMIN_RESULT_STORAGE_KEY = 'CROTOS_ADMIN_RESULT_OVERRIDE';
+
 
 export default function HomePage() {
   const { currentUser, updateBalance: updateAuthBalance, loading: authLoading } = useAuth();
@@ -83,14 +85,12 @@ export default function HomePage() {
       let newResult: GameResult | null = null;
       
       // --- REVISED RESULT DETERMINATION LOGIC ---
-      const adminDefinedResultString = localStorage.getItem('adminDefinedNextResult');
+      const adminDefinedResultString = localStorage.getItem(ADMIN_RESULT_STORAGE_KEY);
       
       if (adminDefinedResultString) {
-        localStorage.removeItem('adminDefinedNextResult'); // Remove immediately to prevent reuse
         try {
-          const adminResult = JSON.parse(adminDefinedResultString) as Partial<GameResult>;
+          const adminResult = JSON.parse(adminDefinedResultString);
           if (adminResult.winningNumber !== undefined && adminResult.winningColor) {
-            console.log("Using admin-defined result:", adminResult);
             newResult = {
               roundId: round.id,
               winningNumber: adminResult.winningNumber,
@@ -98,17 +98,18 @@ export default function HomePage() {
               timestamp: Date.now(),
               finalizedBy: 'admin',
             };
-          } else {
-            console.warn("Admin result from localStorage was incomplete. Falling back to random.");
+            // IMPORTANT: Remove item only after successfully using it.
+            localStorage.removeItem(ADMIN_RESULT_STORAGE_KEY); 
           }
         } catch (error) {
-          console.error("Error parsing admin result from localStorage. Falling back to random:", error);
+          console.error("Error parsing admin result. Falling back to random:", error);
+          // Clean up invalid data from storage
+          localStorage.removeItem(ADMIN_RESULT_STORAGE_KEY);
         }
       }
 
       if (!newResult) {
         // Default to random generation if no admin result was found or if it was invalid
-        console.log("Generating random result.");
         const winningNumber = Math.floor(Math.random() * 10) as NumberOption;
         let determinedWinningColor: ColorOption;
   
