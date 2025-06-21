@@ -48,6 +48,12 @@ export default function WalletPage() {
   const { toast } = useToast();
 
   const currentBalance = currentUser ? currentUser.walletBalance : 0;
+  
+  // Generate QR code URL from an environment variable for security and flexibility.
+  const upiId = process.env.NEXT_PUBLIC_UPI_ID || 'example@upi'; // Fallback to an example
+  const upiData = `upi://pay?pa=${upiId}&pn=Crotos Deposit`; // 'pn' is Payee Name
+  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(upiData)}`;
+
 
   useEffect(() => {
     // In a real app, you would fetch this from your backend/database
@@ -164,10 +170,10 @@ export default function WalletPage() {
               <CardContent className="space-y-4">
                  <div className="flex flex-col items-center gap-4 p-4 rounded-lg bg-background/50">
                     <p className="text-sm text-center text-muted-foreground">
-                      Scan the QR code below to add funds (example).
+                      Scan the QR code below to add funds.
                     </p>
                     <img
-                      src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa=example@upi"
+                      src={qrCodeUrl}
                       alt="Payment QR Code"
                       width="250"
                       height="250"
