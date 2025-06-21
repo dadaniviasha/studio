@@ -1,4 +1,3 @@
-
 "use client";
 
 import { AppHeader } from '@/components/layout/AppHeader'; 
@@ -7,7 +6,6 @@ import { ResultController } from '@/components/admin/ResultController';
 import { PendingWithdrawals } from '@/components/admin/PendingWithdrawals';
 import { PendingDeposits } from '@/components/admin/PendingDeposits';
 import { CurrentBetsOverview } from '@/components/admin/CurrentBetsOverview';
-import { UserManagement } from '@/components/admin/UserManagement';
 import { ShieldCheck, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -70,9 +68,6 @@ export default function AdminPage() {
 
           <CurrentBetsOverview />
 
-          <div className="mt-8">
-              <UserManagement />
-          </div>
         </div>
 
       </main>
