@@ -49,6 +49,7 @@ export default function HomePage() {
   }, [currentDisplayedBalance]);
 
   const roundIdCounterRef = useRef(1);
+  const processingEndRef = useRef(false); // Ref to prevent duplicate round end processing
 
   const [round, setRound] = useState<GameRound>({
     id: roundIdCounterRef.current.toString(),
@@ -101,6 +102,9 @@ export default function HomePage() {
 
 
   const processRoundEnd = useCallback(() => {
+    if (processingEndRef.current) return; // Guard against multiple calls
+    processingEndRef.current = true; // Set flag to indicate processing has started
+
     setIsBettingPhase(false);
     setRound(prev => ({ ...prev, status: 'processing' }));
 
@@ -231,6 +235,7 @@ export default function HomePage() {
         });
         setActiveBets(prev => prev.filter(bet => !bet.isProcessed || bet.roundId !== newResult!.roundId)); 
         setIsBettingPhase(true);
+        processingEndRef.current = false; // Reset flag for the next round
       }, RESULT_PROCESSING_DURATION_SECONDS * 1000);
 
     }, 2000); 
@@ -423,3 +428,4 @@ export default function HomePage() {
     
 
     
+
