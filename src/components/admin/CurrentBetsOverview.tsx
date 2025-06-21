@@ -5,8 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Eye } from 'lucide-react';
-import type { Bet, ColorOption, NumberOption } from '@/lib/types';
+import { Eye, BarChart3, ArrowUp, ArrowDown } from 'lucide-react';
+import type { Bet } from '@/lib/types';
 
 // Dummy data for bets - in a real app, this would come from a backend or shared state
 const dummyBets: Bet[] = [
@@ -25,6 +25,24 @@ export function CurrentBetsOverview() {
     return "Unknown Bet";
   };
 
+  const totalBetAmount = dummyBets.reduce((sum, bet) => sum + bet.amount, 0);
+  const totalOnRed = dummyBets
+    .filter((bet) => bet.selectedColor === 'RED')
+    .reduce((sum, bet) => sum + bet.amount, 0);
+  const totalOnGreen = dummyBets
+    .filter((bet) => bet.selectedColor === 'GREEN')
+    .reduce((sum, bet) => sum + bet.amount, 0);
+  const totalOnViolet = dummyBets
+    .filter((bet) => bet.selectedColor === 'VIOLET')
+    .reduce((sum, bet) => sum + bet.amount, 0);
+  const totalOnNumbers = dummyBets
+    .filter((bet) => bet.selectedNumber !== null)
+    .reduce((sum, bet) => sum + bet.amount, 0);
+
+  const betAmounts = dummyBets.map(b => b.amount);
+  const biggestBet = betAmounts.length > 0 ? Math.max(...betAmounts) : 0;
+  const smallestBet = betAmounts.length > 0 ? Math.min(...betAmounts) : 0;
+
   return (
     <Card className="shadow-xl bg-card/80 backdrop-blur-sm">
       <CardHeader>
@@ -36,6 +54,40 @@ export function CurrentBetsOverview() {
         </CardDescription>
       </CardHeader>
       <CardContent>
+        <div className="mb-6 p-4 border rounded-lg bg-background/30">
+            <h3 className="text-lg font-semibold mb-4 flex items-center"><BarChart3 className="mr-2 h-5 w-5" />Betting Statistics</h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                <div className="flex flex-col p-3 bg-background/50 rounded-md">
+                    <span className="text-muted-foreground">Total Bet Amount</span>
+                    <span className="font-bold text-lg text-primary">₹{totalBetAmount.toFixed(2)}</span>
+                </div>
+                <div className="flex flex-col p-3 bg-red-900/20 rounded-md">
+                    <span className="text-red-400">On Red</span>
+                    <span className="font-bold text-lg text-red-300">₹{totalOnRed.toFixed(2)}</span>
+                </div>
+                <div className="flex flex-col p-3 bg-green-900/20 rounded-md">
+                    <span className="text-green-400">On Green</span>
+                    <span className="font-bold text-lg text-green-300">₹{totalOnGreen.toFixed(2)}</span>
+                </div>
+                 <div className="flex flex-col p-3 bg-purple-900/20 rounded-md">
+                    <span className="text-purple-400">On Violet</span>
+                    <span className="font-bold text-lg text-purple-300">₹{totalOnViolet.toFixed(2)}</span>
+                </div>
+                 <div className="flex flex-col p-3 bg-gray-700/20 rounded-md">
+                    <span className="text-gray-400">On Numbers</span>
+                    <span className="font-bold text-lg text-gray-300">₹{totalOnNumbers.toFixed(2)}</span>
+                </div>
+                 <div className="flex flex-col p-3 bg-background/50 rounded-md">
+                     <span className="text-muted-foreground">Bet Range</span>
+                    <div className="flex items-center gap-2 font-bold text-lg">
+                        <ArrowDown className="h-5 w-5 text-red-500" />
+                        <span>₹{smallestBet.toFixed(2)}</span>
+                        <ArrowUp className="h-5 w-5 text-green-500" />
+                         <span>₹{biggestBet.toFixed(2)}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
         {dummyBets.length > 0 ? (
           <ScrollArea className="h-[300px] w-full border rounded-md">
             <Table>
