@@ -46,6 +46,7 @@ export default function WalletPage() {
   const [withdrawalAmount, setWithdrawalAmount] = useState('');
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const { toast } = useToast();
+  const [qrError, setQrError] = useState(false);
 
   const currentBalance = currentUser ? currentUser.walletBalance : 0;
 
@@ -163,17 +164,28 @@ export default function WalletPage() {
             <form onSubmit={handleDeposit}>
               <CardContent className="space-y-4">
                  <div className="flex flex-col items-center gap-4 p-4 rounded-lg bg-background/50">
-                  <p className="text-sm text-center text-muted-foreground">
-                    Scan the QR code below to add funds.
-                  </p>
-                  <img
-                    src="https://placehold.co/250x250.png"
-                    alt="Payment QR Code"
-                    width="250"
-                    height="250"
-                    className="rounded-lg"
-                  />
-                </div>
+                    {!qrError && (
+                      <p className="text-sm text-center text-muted-foreground">
+                        Scan the QR code below to add funds.
+                      </p>
+                    )}
+                    <img
+                      src="https://firebasestorage.googleapis.com/v0/b/crotos-b6ad4.appspot.com/o/scanner.png?alt=media"
+                      alt="Payment QR Code"
+                      width="250"
+                      height="250"
+                      className={cn("rounded-lg bg-white p-2", { 'hidden': qrError })}
+                      onError={() => setQrError(true)}
+                    />
+                    {qrError && (
+                      <div className="text-destructive text-sm text-center">
+                          <p className="font-semibold">QR Code Failed to Load</p>
+                          <p className="text-xs mt-1 text-muted-foreground">
+                              Please ensure <code className="font-mono text-xs bg-muted p-1 rounded">scanner.png</code> has been uploaded to your Firebase Storage bucket and is publicly accessible.
+                          </p>
+                      </div>
+                    )}
+                  </div>
                 <div>
                   <Label htmlFor="depositAmount">Or Enter Amount (₹)</Label>
                   <div className="relative mt-1">
