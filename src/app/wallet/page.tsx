@@ -253,7 +253,7 @@ export default function WalletPage() {
                     <Label>2. Scan QR to Pay</Label>
                     <div className="flex flex-col items-center justify-center p-4 rounded-lg bg-background/50 border">
                         <div className="bg-white p-2 rounded-lg w-auto h-auto flex items-center justify-center shadow-md">
-                           <Image src="/scanner.png" alt="Scan to pay UPI QR code" width={250} height={250} />
+                           <Image src="/images/scanner.png" alt="Scan to pay UPI QR code" width={250} height={250} />
                         </div>
                     </div>
                 </div>
