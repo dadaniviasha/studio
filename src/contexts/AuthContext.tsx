@@ -102,7 +102,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const userCredential = await signInWithEmailAndPassword(auth, email, passwordAttempt);
       toast({ title: "Login Successful", description: `Welcome back!` });
       const userDoc = await getUserDocument(userCredential.user.uid);
-      // Rely ONLY on the database record for admin status.
       const isAdmin = !!userDoc?.isAdmin;
       router.push(isAdmin ? '/admin' : '/');
 
@@ -128,7 +127,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, passwordRaw);
       await updateProfile(userCredential.user, { displayName: username });
+      
+      // This function creates the document with the bonus.
       await createUserDocument(userCredential.user, username);
+      
+      // Immediately fetch the newly created document to update the app's state.
+      // This makes the process robust and avoids race conditions with onAuthStateChanged.
+      const newUserDoc = await getUserDocument(userCredential.user.uid);
+      if (newUserDoc) {
+        setCurrentUser(newUserDoc);
+      }
 
       toast({ title: "Signup Successful", description: `Welcome, ${username}!` });
       router.push('/');
