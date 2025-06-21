@@ -126,41 +126,18 @@ export function UserManagement() {
     }
 
     if (state.error) {
-      // Keep the detailed troubleshooting guide because it's essential
       return (
         <TableBody>
           <TableRow>
             <TableCell colSpan={5}>
               <Alert variant="destructive" className="my-4">
                 <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>Access Error: Final Check</AlertTitle>
+                <AlertTitle>Permission Error: Could Not Load Users</AlertTitle>
                 <AlertDescription>
-                  <div className="space-y-4 text-sm">
-                    <p>This error means your account lacks the necessary permissions in the database. Since you've already confirmed the rules and project ID, the issue is very likely a subtle data error for your user in Firestore.</p>
-                    <p className="font-semibold">Please perform this final check in the Firebase Console:</p>
-                    <ol className="list-decimal list-inside space-y-3">
-                        <li>
-                            <strong>Go to Firestore Database &rarr; `users` collection.</strong>
-                        </li>
-                        <li>
-                            <strong>Find your user document.</strong> The app sees you as <strong className="text-primary">{currentUser?.email || 'Not Logged In'}</strong> (with Admin status: <strong className="text-primary">{currentUser?.isAdmin ? 'Admin' : 'Not an Admin'}</strong>). The document ID is your User UID from the Authentication tab.
-                        </li>
-                        <li>
-                            <strong>Check the `isAdmin` field VERY carefully:</strong>
-                            <ul className="list-disc list-inside pl-4 mt-2 space-y-1 bg-background/50 p-3 rounded-md">
-                                <li>
-                                  <strong>Case-Sensitivity:</strong> The field name must be exactly `isAdmin` (lowercase 'i', uppercase 'A'). Not `isadmin` or `IsAdmin`.
-                                </li>
-                                <li>
-                                  <strong>Data Type:</strong> The value must be a <strong className="text-primary">boolean</strong>, not a string. It should say `true` (boolean), not `"true"` (string).
-                                </li>
-                            </ul>
-                        </li>
-                         <li>
-                            <strong>Confirm the Rules:</strong> As a last resort, please re-copy the rules from <code className="text-xs bg-muted p-1 rounded">PROPOSED_FIRESTORE_RULES.md</code> and publish them again, just in case a previous attempt didn't save correctly.
-                        </li>
-                    </ol>
-                  </div>
+                    <div className="space-y-2 mt-2">
+                        <p>The app was blocked by your database security rules. This is a required security step to protect user data.</p>
+                        <p className="font-semibold">To fix this, please follow the simple, one-time instructions in the file named <code className="bg-muted px-1.5 py-1 rounded-md text-destructive/80">PROPOSED_FIRESTORE_RULES.md</code> in your project's file list.</p>
+                    </div>
                 </AlertDescription>
               </Alert>
             </TableCell>
