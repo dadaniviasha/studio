@@ -254,8 +254,9 @@ export default function WalletPage() {
                     <div className="flex flex-col items-center justify-center p-4 rounded-lg bg-background/50 border">
                         <div className="bg-white p-2 rounded-lg w-[266px] h-[266px] flex items-center justify-center shadow-md">
                            <Image
-                                src="/scanner.png"
+                                src="https://placehold.co/250x250.png"
                                 alt="UPI Payment QR Code"
+                                data-ai-hint="qr code"
                                 width={250}
                                 height={250}
                                 className="rounded-sm"
@@ -415,3 +416,5 @@ export default function WalletPage() {
     </div>
   );
 }
+
+    
