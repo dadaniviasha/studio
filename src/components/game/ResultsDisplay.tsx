@@ -68,6 +68,10 @@ export function ResultsDisplay({ currentResult, history }: ResultsDisplayProps) 
   
   const displayResult = revealedResult || currentResult;
 
+  // To avoid showing the same result in the big display AND the history list,
+  // we filter the currently displayed result out of the history list.
+  const historyToShow = history.filter(h => h.roundId !== displayResult?.roundId);
+
   return (
     <Card className="shadow-xl bg-card/80 backdrop-blur-sm">
       <CardHeader>
@@ -110,10 +114,10 @@ export function ResultsDisplay({ currentResult, history }: ResultsDisplayProps) 
             <History className="mr-2 h-5 w-5" /> Recent History
           </h4>
           <ScrollArea className="h-[200px] w-full rounded-md border p-4 bg-background/30">
-            {history.length > 0 ? (
+            {historyToShow.length > 0 ? (
               <div className="space-y-3">
-                {history.map((res, index) => (
-                  <div key={index} className="flex items-center justify-between p-2 rounded-md bg-card/50 hover:bg-card/70 transition-colors">
+                {historyToShow.map((res) => (
+                  <div key={res.roundId} className="flex items-center justify-between p-2 rounded-md bg-card/50 hover:bg-card/70 transition-colors">
                     <span className="text-xs text-muted-foreground">Round #{res.roundId}</span>
                     <div className="flex items-center space-x-2">
                        <div 
