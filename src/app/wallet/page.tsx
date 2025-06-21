@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppFooter } from '@/components/layout/AppFooter';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -49,12 +50,6 @@ export default function WalletPage() {
 
   const currentBalance = currentUser ? currentUser.walletBalance : 0;
   
-  // Generate QR code URL from an environment variable for security and flexibility.
-  const upiId = process.env.NEXT_PUBLIC_UPI_ID || 'example@upi'; // Fallback to an example
-  const upiData = `upi://pay?pa=${upiId}&pn=Crotos Deposit`; // 'pn' is Payee Name
-  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(upiData)}`;
-
-
   useEffect(() => {
     // In a real app, you would fetch this from your backend/database
     if (currentUser) {
@@ -175,15 +170,23 @@ export default function WalletPage() {
               <CardContent className="space-y-4">
                  <div className="flex flex-col items-center gap-4 p-4 rounded-lg bg-background/50">
                     <p className="text-sm text-center text-muted-foreground">
-                      1. Scan the QR code to pay with your UPI app.
+                      1. Scan this QR code to pay with your UPI app.
                     </p>
-                    <img
-                      src={qrCodeUrl}
-                      alt="Payment QR Code"
-                      width="250"
-                      height="250"
-                      className="rounded-lg bg-white p-2"
-                    />
+                    <div className="bg-white p-2 rounded-lg">
+                       <Image
+                        src="/images/scanner.png"
+                        alt="Your Payment QR Code Scanner"
+                        width={250}
+                        height={250}
+                        className="rounded-md"
+                        data-ai-hint="qr code"
+                        // If the image fails to load, this will show a placeholder
+                        onError={(e) => { e.currentTarget.src = 'https://placehold.co/250x250.png'; }}
+                      />
+                    </div>
+                     <p className="text-xs text-muted-foreground text-center">
+                      To show your QR code, upload an image named `scanner.png` to the `public/images` folder.
+                    </p>
                   </div>
                 <div>
                   <Label htmlFor="depositAmount">2. Enter Amount (₹)</Label>

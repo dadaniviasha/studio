@@ -1,0 +1,1 @@
+Please upload your scanner.png file into this directory.
