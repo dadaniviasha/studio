@@ -1,7 +1,8 @@
 "use server";
 
-import type { Bet, ColorOption, NumberOption, GameResult, WithdrawalRequest } from "@/lib/types";
+import type { Bet, ColorOption, NumberOption, GameResult, WithdrawalRequest, User } from "@/lib/types";
 import { MIN_BET_AMOUNT, MIN_WITHDRAWAL_AMOUNT } from "@/lib/constants";
+import { getAllUsers, updateUserBalanceInDb } from "@/lib/firebase/firestore";
 
 // This is a placeholder file. In a real application, these actions would interact with a database,
 // handle authentication, and perform actual game logic. For this scaffold, they will mostly
@@ -123,6 +124,23 @@ export async function processWithdrawalAction(args: ProcessWithdrawalArgs): Prom
     return { success: true, message: `Withdrawal request ${args.requestId} has been ${args.status}.` };
 }
 
-// Add more server actions as needed (deposit, user management, etc.)
+export async function getAllUsersAction(): Promise<User[]> {
+    // In a real app, you might want to add pagination
+    return await getAllUsers();
+}
 
+export async function updateUserBalanceAction(userId: string, newBalance: number): Promise<{ success: boolean; message: string }> {
+    if (newBalance < 0) {
+        return { success: false, message: "Balance cannot be negative." };
+    }
     
+    // TODO: Add permission check here in a real app to ensure only admin can call this
+    
+    try {
+        await updateUserBalanceInDb(userId, newBalance);
+        return { success: true, message: `Balance updated for user ${userId}.` };
+    } catch (error) {
+        console.error("Error updating user balance via server action:", error);
+        return { success: false, message: "A server error occurred." };
+    }
+}

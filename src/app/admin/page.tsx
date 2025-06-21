@@ -6,6 +6,7 @@ import { AppFooter } from '@/components/layout/AppFooter';
 import { ResultController } from '@/components/admin/ResultController';
 import { PendingWithdrawals } from '@/components/admin/PendingWithdrawals';
 import { CurrentBetsOverview } from '@/components/admin/CurrentBetsOverview';
+import { UserManagement } from '@/components/admin/UserManagement';
 import type { GameResult } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { ShieldCheck, AlertTriangle } from 'lucide-react';
@@ -97,9 +98,8 @@ export default function AdminPage() {
             <CurrentBetsOverview />
         </div>
 
-        <div className="mt-8 p-6 border rounded-lg bg-card/50 backdrop-blur-sm">
-            <h2 className="text-2xl font-headline text-primary mb-4">More Admin Tools</h2>
-            <p className="text-muted-foreground">Additional administrative features (e.g., user management, site statistics) would be available here.</p>
+        <div className="mt-8">
+            <UserManagement />
         </div>
 
       </main>

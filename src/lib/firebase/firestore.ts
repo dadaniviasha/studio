@@ -1,5 +1,5 @@
 import { db } from './config';
-import { doc, getDoc, setDoc, updateDoc, type DocumentData } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, type DocumentData, collection, getDocs, query, where } from 'firebase/firestore';
 import type { User as AppUser } from '@/lib/types';
 import type { User as FirebaseUser } from 'firebase/auth';
 
@@ -53,6 +53,20 @@ export async function getUserDocument(uid: string): Promise<AppUser | null> {
     console.warn("No user document found for UID:", uid);
     return null;
   }
+}
+
+/**
+ * Fetches all non-admin users from Firestore.
+ * @returns An array of user data.
+ */
+export async function getAllUsers(): Promise<AppUser[]> {
+  if (!db) return [];
+  const usersRef = collection(db, 'users');
+  // Query for users where isAdmin is false, so admin cannot edit their own balance
+  const q = query(usersRef, where("isAdmin", "==", false));
+  const querySnapshot = await getDocs(q);
+  const usersList = querySnapshot.docs.map(doc => doc.data() as AppUser);
+  return usersList;
 }
 
 
