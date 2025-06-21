@@ -4,7 +4,7 @@ import type { User as AppUser } from '@/lib/types';
 import type { User as FirebaseUser } from 'firebase/auth';
 
 export const SIGNUP_BONUS = 50;
-const ADMIN_EMAIL = 'dadaniviasha@gmail.com'; // Admin email is explicitly defined here.
+export const ADMIN_EMAIL = 'dadaniviasha@gmail.com'; // Admin email is explicitly defined here and now exported.
 
 /**
  * Creates a new user document in Firestore.

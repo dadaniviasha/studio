@@ -13,8 +13,10 @@ import {
   updateProfile,
   type User as FirebaseUser 
 } from 'firebase/auth';
-import { auth, FBCONFIG_MISSING } from '@/lib/firebase/config';
-import { createUserDocument, getUserDocument, updateUserBalanceInDb } from '@/lib/firebase/firestore';
+import { auth, db, FBCONFIG_MISSING } from '@/lib/firebase/config';
+import { createUserDocument, getUserDocument, updateUserBalanceInDb, ADMIN_EMAIL } from '@/lib/firebase/firestore';
+import { doc, updateDoc } from 'firebase/firestore';
+
 
 interface AuthContextType {
   currentUser: User | null;
@@ -45,7 +47,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
-    if (!auth) {
+    if (!auth || !db) {
         setLoading(false);
         return;
     }
@@ -54,27 +56,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
       if (firebaseUser) {
         try {
-          // User is signed in, fetch their document from Firestore.
           let appUserDoc = await getUserDocument(firebaseUser.uid);
           
           if (!appUserDoc) {
-            // If user doc doesn't exist, create it. This will now set the isAdmin flag.
+            // If user doc doesn't exist, create it. This will set the isAdmin flag correctly.
             await createUserDocument(firebaseUser); 
             appUserDoc = await getUserDocument(firebaseUser.uid);
+          } else {
+            // FIX: If doc exists, check if user *should* be admin but isn't.
+            // This is a one-time correction for existing accounts that logs in.
+            if (firebaseUser.email === ADMIN_EMAIL && !appUserDoc.isAdmin) {
+                console.log(`Correcting admin status for ${firebaseUser.email}...`);
+                const userRef = doc(db, 'users', firebaseUser.uid);
+                await updateDoc(userRef, { isAdmin: true });
+                appUserDoc.isAdmin = true; // Update the local copy as well
+            }
           }
 
           if (appUserDoc) {
-            // The `isAdmin` property is now directly on the user document from Firestore.
-            // No need to manually add it here.
             setCurrentUser(appUserDoc);
           } else {
-             // This case is unlikely if creation is successful, but good to have a fallback.
              setCurrentUser(null);
              toast({ title: "Login Error", description: "Could not retrieve your user data after creation. Please try again.", variant: "destructive" });
           }
         } catch (error: any) {
             console.error("Firestore error during auth state change:", error);
-            // Specifically check for the offline error code
             if (error.code === 'unavailable') {
                  toast({
                     title: "Connection Error",
@@ -85,10 +91,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             } else {
                 toast({ title: "Database Error", description: "An error occurred while fetching your data.", variant: "destructive" });
             }
-            setCurrentUser(null); // Log out user if we can't get their data
+            setCurrentUser(null);
         }
       } else {
-        // User is signed out.
         setCurrentUser(null);
       }
       setLoading(false);
@@ -102,10 +107,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, passwordAttempt);
+      // The onAuthStateChanged listener will handle fetching the user doc and redirecting.
+      // We can add a simple toast here.
+      toast({ title: "Login Successful", description: `Welcome back!` });
+       // The redirect logic is now implicitly handled by the onAuthStateChanged listener setting the user state,
+       // causing a re-render that can then redirect based on role. We can add a direct redirect for faster UX.
       const userDoc = await getUserDocument(userCredential.user.uid);
-      const isAdmin = userDoc?.isAdmin || false; // Safely check the isAdmin property from the document
-
-      toast({ title: "Login Successful", description: `Welcome back, ${userDoc?.username || userCredential.user.displayName || 'user'}!` });
+      const isAdmin = userDoc?.isAdmin || (userCredential.user.email === ADMIN_EMAIL); 
       router.push(isAdmin ? '/admin' : '/');
 
     } catch (error: any) {
@@ -130,8 +138,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, passwordRaw);
       await updateProfile(userCredential.user, { displayName: username });
-      // Create user document in Firestore, passing the explicit username.
-      // This function now also sets the `isAdmin` flag.
+      // This function now correctly sets the `isAdmin` flag upon creation.
       await createUserDocument(userCredential.user, username);
 
       toast({ title: "Signup Successful", description: `Welcome, ${username}!` });
