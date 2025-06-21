@@ -56,20 +56,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
       if (firebaseUser) {
         try {
-          let appUserDoc = await getUserDocument(firebaseUser.uid);
-          
-          if (!appUserDoc) {
-            // If user doc doesn't exist, create it. This will set the isAdmin flag correctly on signup.
-            await createUserDocument(firebaseUser); 
-            appUserDoc = await getUserDocument(firebaseUser.uid);
-          }
+          // This logic is now simplified. It only READS the document.
+          // The responsibility for CREATING the document is solely within the signup function.
+          // This prevents a race condition where the listener fires before the signup's
+          // database write is complete, which was causing duplicate documents and bonuses.
+          const appUserDoc = await getUserDocument(firebaseUser.uid);
 
           if (appUserDoc) {
             console.log("AuthContext: User state updated.", { email: appUserDoc.email, isAdmin: appUserDoc.isAdmin });
             setCurrentUser(appUserDoc);
           } else {
+             // If the user is authenticated with Firebase but has no document,
+             // it's an inconsistent state. Treat them as logged out.
+             console.warn(`Authenticated user ${firebaseUser.uid} has no Firestore document.`);
              setCurrentUser(null);
-             toast({ title: "Login Error", description: "Could not retrieve your user data. Please try again.", variant: "destructive" });
           }
         } catch (error: any) {
             console.error("Firestore error during auth state change:", error);
