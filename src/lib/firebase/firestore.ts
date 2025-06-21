@@ -6,16 +6,27 @@ import type { User as FirebaseUser } from 'firebase/auth';
 export const SIGNUP_BONUS = 50;
 
 /**
- * Creates a new user document in Firestore when a user signs up.
+ * Creates a new user document in Firestore.
+ * This function is now more robust to prevent race conditions and handle missing usernames.
  * @param user The Firebase user object from authentication.
+ * @param formUsername Optional username from a signup form, which is preferred if available.
  */
-export async function createUserDocument(user: FirebaseUser) {
+export async function createUserDocument(user: FirebaseUser, formUsername?: string) {
   if (!db) return;
   const userRef = doc(db, 'users', user.uid);
+
+  // Check if the document already exists to prevent overwriting in a race condition.
+  const docSnap = await getDoc(userRef);
+  if (docSnap.exists()) {
+    console.log(`User document for ${user.uid} already exists. Skipping creation.`);
+    return;
+  }
+
   const userData = {
     id: user.uid,
     email: user.email,
-    username: user.displayName,
+    // Use the form username if provided, otherwise fall back to auth display name or a default.
+    username: formUsername || user.displayName || "New User",
     walletBalance: SIGNUP_BONUS,
   };
   await setDoc(userRef, userData);

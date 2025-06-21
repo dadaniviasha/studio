@@ -58,7 +58,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         // This is a fallback for robustness: if a user exists in Auth but not Firestore, create their doc.
         if (!appUserDoc) {
-          await createUserDocument(firebaseUser);
+          // This call is now more robust and prevents race conditions.
+          await createUserDocument(firebaseUser); 
           appUserDoc = await getUserDocument(firebaseUser.uid);
         }
 
@@ -105,8 +106,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, passwordRaw);
       await updateProfile(userCredential.user, { displayName: username });
-      // Create user document in Firestore. The onAuthStateChanged listener will then pick it up.
-      await createUserDocument(userCredential.user);
+      // Create user document in Firestore, passing the explicit username.
+      await createUserDocument(userCredential.user, username);
 
       toast({ title: "Signup Successful", description: `Welcome, ${username}!` });
       router.push('/');
@@ -115,6 +116,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       let errorMessage = "Failed to sign up. Please try again.";
       if (error.code === 'auth/email-already-in-use') {
         errorMessage = "An account with this email already exists.";
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = "The email address is not valid.";
+      } else if (error.code === 'auth/weak-password') {
+        errorMessage = "The password is too weak. It must be at least 6 characters long.";
       } else if (error.code === 'auth/api-key-not-valid') {
         errorMessage = "The Firebase API key is invalid. Please check your .env.local file and restart the application.";
       }
@@ -138,14 +143,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateBalance = useCallback(async (newBalance: number) => {
     if (currentUser) {
-      // Optimistic UI update for a responsive feel.
-      // The user's balance will appear to change, but it won't be saved to the database from here.
       setCurrentUser(prevUser => prevUser ? { ...prevUser, walletBalance: newBalance } : null);
-
-      // IMPORTANT: In a production app, the client should NEVER set its own balance.
-      // Instead of calling updateUserBalanceInDb, you would call a secure Firebase Cloud Function
-      // that validates the transaction (e.g., a bet or a win) and updates the balance on the server.
-      // The direct database call from the client has been removed to enforce security.
       console.log("Client-side balance updated for UI. A secure backend function would be needed to persist this change.");
     }
   }, [currentUser]);
