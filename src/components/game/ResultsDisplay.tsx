@@ -79,7 +79,7 @@ export function ResultsDisplay({ currentResult, history }: ResultsDisplayProps) 
       <CardContent>
         {displayResult ? (
           <div className="mb-8 p-6 rounded-lg bg-background/50 shadow-inner animate-result-reveal">
-            <h3 className="text-center text-lg font-semibold text-accent mb-1">Round #{displayResult.roundId.slice(0,5)} Winner!</h3>
+            <h3 className="text-center text-lg font-semibold text-accent mb-1">Round #{displayResult.roundId.slice(-5)} Winner!</h3>
             <div className="flex flex-col items-center justify-center space-y-3">
               <div 
                 className={cn(
@@ -114,7 +114,7 @@ export function ResultsDisplay({ currentResult, history }: ResultsDisplayProps) 
               <div className="space-y-3">
                 {history.map((res, index) => (
                   <div key={index} className="flex items-center justify-between p-2 rounded-md bg-card/50 hover:bg-card/70 transition-colors">
-                    <span className="text-xs text-muted-foreground">Round #{res.roundId.slice(0,5)}</span>
+                    <span className="text-xs text-muted-foreground">Round #{res.roundId.slice(-5)}</span>
                     <div className="flex items-center space-x-2">
                        <div 
                         className={cn(

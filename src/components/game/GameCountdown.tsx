@@ -40,7 +40,7 @@ export function GameCountdown({ onTimerEnd, isProcessing = false, roundId }: Gam
   return (
     <Card className="shadow-xl bg-card/80 backdrop-blur-sm">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-lg font-medium text-primary">Current Round #{String(roundId).slice(0,5)}</CardTitle>
+        <CardTitle className="text-lg font-medium text-primary">Current Round #{String(roundId).slice(-5)}</CardTitle>
         <TimerIcon className="h-6 w-6 text-accent" />
       </CardHeader>
       <CardContent>
