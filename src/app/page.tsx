@@ -449,18 +449,6 @@ export default function HomePage() {
                                 </ul>
                             </AccordionContent>
                         </AccordionItem>
-                         <AccordionItem value="item-4">
-                            <AccordionTrigger className="text-destructive/80 hover:text-destructive">
-                                <AlertCircle className="mr-2 h-5 w-5 text-destructive/80" /> Important Notes
-                            </AccordionTrigger>
-                            <AccordionContent className="space-y-2 text-muted-foreground">
-                               <p className="font-bold text-destructive">This is a prototype application. No real money is involved.</p>
-                               <p>Minimum bet amount for each bet type (color or number): ₹{MIN_BET_AMOUNT}.</p>
-                               <p>Bets are final once placed.</p>
-                               <p>Play responsibly. This is a game of chance.</p>
-                               <p>You must be logged in to track your balance and winnings properly. Bets made as a guest are for fun only and won't be saved.</p>
-                            </AccordionContent>
-                        </AccordionItem>
                     </Accordion>
                 </CardContent>
             </Card>
@@ -474,6 +462,7 @@ export default function HomePage() {
     
 
     
+
 
 
 
