@@ -48,16 +48,20 @@ export default function HomePage() {
     currentDisplayedBalanceRef.current = currentDisplayedBalance;
   }, [currentDisplayedBalance]);
 
-  // FIX: Use a ref to store the round counter so it persists across re-renders.
   const roundIdCounterRef = useRef(1);
 
   const [round, setRound] = useState<GameRound>({
-    id: roundIdCounterRef.current.toString(), // Initialize with the ref's value
+    id: roundIdCounterRef.current.toString(),
     startTime: Date.now(),
     endTime: Date.now() + GAME_ROUND_DURATION_SECONDS * 1000, 
     status: 'betting'
   });
   const { toast } = useToast();
+
+  const roundRef = useRef(round);
+  useEffect(() => {
+    roundRef.current = round;
+  }, [round]);
 
   const betPlacedSoundRef = useRef<HTMLAudioElement | null>(null);
   const winSoundRef = useRef<HTMLAudioElement | null>(null);
@@ -115,7 +119,7 @@ export default function HomePage() {
           if (isValidNumber && isValidColor) {
             console.log("Applying admin-defined result:", adminResult);
             newResult = {
-              roundId: round.id,
+              roundId: roundRef.current.id,
               winningNumber: adminResult.winningNumber,
               winningColor: adminResult.winningColor,
               timestamp: Date.now(),
@@ -140,7 +144,7 @@ export default function HomePage() {
         const determinedWinningColor = availableColors[Math.floor(Math.random() * availableColors.length)];
         
         newResult = {
-          roundId: round.id,
+          roundId: roundRef.current.id,
           winningNumber,
           winningColor: determinedWinningColor,
           timestamp: Date.now(),
@@ -152,11 +156,11 @@ export default function HomePage() {
       setResultHistory(prev => [newResult!, ...prev.slice(0, 9)]); 
 
       // --- NEW FIXED-ODDS PAYOUT LOGIC ---
-      const betsPlacedThisRound = activeBetsRef.current.filter(bet => bet.roundId === round.id && !bet.isProcessed);
+      const betsPlacedThisRound = activeBetsRef.current.filter(bet => bet.roundId === roundRef.current.id && !bet.isProcessed);
       let totalWinningsThisRound = 0;
       
       const updatedBets = activeBetsRef.current.map(bet => {
-        if (bet.roundId !== round.id || bet.isProcessed) return bet;
+        if (bet.roundId !== roundRef.current.id || bet.isProcessed) return bet;
 
         let isWinner = false;
         let payoutMultiplier = 0;
@@ -218,10 +222,8 @@ export default function HomePage() {
       }
 
       setTimeout(() => {
-        // FIX: Increment the counter in the ref.
         roundIdCounterRef.current++;
         setRound({
-          // FIX: Use the new value from the ref.
           id: roundIdCounterRef.current.toString(),
           startTime: Date.now(),
           endTime: Date.now() + GAME_ROUND_DURATION_SECONDS * 1000,
@@ -232,8 +234,7 @@ export default function HomePage() {
       }, RESULT_PROCESSING_DURATION_SECONDS * 1000);
 
     }, 2000); 
-    // Stable dependencies: only include values that don't change on every render.
-  }, [round.id, toast, currentUser, updateAuthBalance]);
+  }, [toast, currentUser, updateAuthBalance]);
 
   const handleBetPlaced = (submission: BetSubmission) => {
     if (!currentUser && (!submission.colorBet && !submission.numberBet)) {
