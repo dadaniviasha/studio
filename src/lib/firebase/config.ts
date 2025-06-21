@@ -3,32 +3,49 @@ import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
 import { getFirestore, type Firestore } from "firebase/firestore";
 
-// Your web app's Firebase configuration
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-};
+// --- Firebase Initialization and Debugging ---
+console.log("--- Initializing Firebase ---");
 
-// --- Start of Debugging Logs ---
-console.log("--- Firebase Config Check ---");
-console.log("API Key found in environment:", !!firebaseConfig.apiKey);
-console.log("Project ID found in environment:", !!firebaseConfig.projectId);
-// --- End of Debugging Logs ---
+const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
+const authDomain = process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN;
+const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+const storageBucket = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
+const messagingSenderId = process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID;
+const appId = process.env.NEXT_PUBLIC_FIREBASE_APP_ID;
 
-export const FBCONFIG_MISSING = !firebaseConfig.apiKey || !firebaseConfig.projectId;
+console.log("Checking for NEXT_PUBLIC_FIREBASE_API_KEY:", apiKey ? "Found" : "MISSING");
+console.log("Checking for NEXT_PUBLIC_FIREBASE_PROJECT_ID:", projectId ? "Found" : "MISSING");
+
+export const FBCONFIG_MISSING = !apiKey || !projectId;
+
+let app: FirebaseApp | null = null;
+let auth: Auth | null = null;
+let db: Firestore | null = null;
 
 if (FBCONFIG_MISSING) {
-  console.error("CRITICAL: FIREBASE CONFIG IS MISSING. Verify your .env.local file and restart the server.");
+  console.error("CRITICAL: Firebase config is missing or incomplete. Please verify your .env.local file and ensure the server has restarted.");
+} else {
+  const firebaseConfig = {
+    apiKey,
+    authDomain,
+    projectId,
+    storageBucket,
+    messagingSenderId,
+    appId,
+  };
+
+  try {
+    app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+    auth = getAuth(app);
+    db = getFirestore(app);
+    console.log("Firebase initialized successfully.");
+  } catch (error) {
+    console.error("Error initializing Firebase:", error);
+    // This might happen if keys are present but invalid.
+    app = null;
+    auth = null;
+    db = null;
+  }
 }
-
-
-// Initialize Firebase
-const app: FirebaseApp | null = FBCONFIG_MISSING ? null : !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const auth: Auth | null = FBCONFIG_MISSING || !app ? null : getAuth(app);
-const db: Firestore | null = FBCONFIG_MISSING || !app ? null : getFirestore(app);
 
 export { app, auth, db };
