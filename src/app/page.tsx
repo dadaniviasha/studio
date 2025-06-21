@@ -17,7 +17,6 @@ import { AlertCircle, Info, Gift } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 // Dummy data and simulation logic
-let currentRoundId = 1; // Start with Round 1
 const initialBets: BetType[] = [];
 
 // Placeholder sound data URIs (silent WAV)
@@ -48,8 +47,11 @@ export default function HomePage() {
     currentDisplayedBalanceRef.current = currentDisplayedBalance;
   }, [currentDisplayedBalance]);
 
+  // FIX: Use a ref to store the round counter so it persists across re-renders.
+  const roundIdCounterRef = useRef(1);
+
   const [round, setRound] = useState<GameRound>({
-    id: currentRoundId.toString(),
+    id: roundIdCounterRef.current.toString(), // Initialize with the ref's value
     startTime: Date.now(),
     endTime: Date.now() + GAME_ROUND_DURATION_SECONDS * 1000, 
     status: 'betting'
@@ -200,9 +202,11 @@ export default function HomePage() {
       }
 
       setTimeout(() => {
-        currentRoundId++; // Increment the counter for the next round
+        // FIX: Increment the counter in the ref.
+        roundIdCounterRef.current++;
         setRound({
-          id: currentRoundId.toString(),
+          // FIX: Use the new value from the ref.
+          id: roundIdCounterRef.current.toString(),
           startTime: Date.now(),
           endTime: Date.now() + GAME_ROUND_DURATION_SECONDS * 1000,
           status: 'betting'
@@ -398,4 +402,5 @@ export default function HomePage() {
       <AppFooter />
     </div>
   );
-}
+
+    
