@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -18,15 +18,6 @@ export function ResultController({ onSetResult }: ResultControllerProps) {
   const [manualColor, setManualColor] = useState<ColorOption | ''>('');
   const [manualNumber, setManualNumber] = useState<NumberOption | ''>('');
   const { toast } = useToast();
-
-  useEffect(() => {
-    // If the selected number is 0 or 5, force the color to VIOLET.
-    if (manualNumber === 0 || manualNumber === 5) {
-      if (manualColor !== 'VIOLET') {
-        setManualColor('VIOLET');
-      }
-    }
-  }, [manualNumber, manualColor]);
 
   const handleSetResult = () => {
     if (manualNumber === '' || manualColor === '') {
@@ -82,7 +73,6 @@ export function ResultController({ onSetResult }: ResultControllerProps) {
               <Select 
                 value={manualColor} 
                 onValueChange={(value: ColorOption | '') => setManualColor(value)}
-                disabled={manualNumber === 0 || manualNumber === 5}
               >
                 <SelectTrigger id="manualColor" className="w-full h-12 mt-1">
                   <SelectValue placeholder="Select winning color" />
@@ -93,9 +83,6 @@ export function ResultController({ onSetResult }: ResultControllerProps) {
                   <SelectItem value="VIOLET">Violet</SelectItem>
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground mt-1">
-                If number 0 or 5 is selected, winning color is automatically VIOLET.
-              </p>
             </div>
         </div>
         
