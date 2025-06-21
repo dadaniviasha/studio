@@ -32,10 +32,8 @@ export default function AdminPage() {
     try {
       localStorage.setItem('adminDefinedNextResult', JSON.stringify(result));
       console.log("Admin set next result, stored in localStorage:", result);
-      toast({
-        title: "Result Instruction Stored",
-        description: `Instruction to set Number: ${result.winningNumber}, Color: ${result.winningColor} for the next round has been stored. Finalized by: ${result.finalizedBy}`,
-      });
+      // The toast notification is now handled within the ResultController component itself
+      // to provide direct feedback to the admin upon clicking the button.
     } catch (error) {
       console.error("Error saving admin result to localStorage:", error);
       toast({
