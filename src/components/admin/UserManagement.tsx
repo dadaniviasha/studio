@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -8,11 +9,13 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
-import { Users, Edit, DollarSign } from 'lucide-react';
+import { Users, Edit, DollarSign, ShieldCheck } from 'lucide-react';
 import type { User } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { getAllUsersAction, updateUserBalanceAction } from '@/server/actions';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 export function UserManagement() {
   const [users, setUsers] = useState<User[]>([]);
@@ -95,6 +98,7 @@ export function UserManagement() {
                 <TableRow>
                   <TableHead>Username</TableHead>
                   <TableHead>Email</TableHead>
+                  <TableHead>Role</TableHead>
                   <TableHead className="text-right">Wallet Balance (₹)</TableHead>
                   <TableHead className="text-center">Actions</TableHead>
                 </TableRow>
@@ -105,15 +109,26 @@ export function UserManagement() {
                     <TableRow key={i}>
                       <TableCell><Skeleton className="h-4 w-[100px]" /></TableCell>
                       <TableCell><Skeleton className="h-4 w-[150px]" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-[50px]" /></TableCell>
                       <TableCell className="text-right"><Skeleton className="h-4 w-[60px] ml-auto" /></TableCell>
                       <TableCell className="text-center"><Skeleton className="h-8 w-[100px] mx-auto" /></TableCell>
                     </TableRow>
                   ))
                 ) : users.length > 0 ? (
                   users.map((user) => (
-                    <TableRow key={user.id}>
+                    <TableRow key={user.id} className={cn(user.isAdmin && "bg-primary/10")}>
                       <TableCell className="font-medium">{user.username}</TableCell>
                       <TableCell className="text-muted-foreground">{user.email}</TableCell>
+                       <TableCell>
+                        {user.isAdmin ? (
+                            <Badge variant="default" className="bg-primary/80">
+                                <ShieldCheck className="mr-1 h-3 w-3" />
+                                Admin
+                            </Badge>
+                        ) : (
+                            <Badge variant="secondary">User</Badge>
+                        )}
+                      </TableCell>
                       <TableCell className="text-right font-mono">₹{user.walletBalance.toFixed(2)}</TableCell>
                       <TableCell className="text-center">
                         <Button variant="outline" size="sm" onClick={() => handleEditClick(user)}>
@@ -124,7 +139,7 @@ export function UserManagement() {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={4} className="h-24 text-center">
+                    <TableCell colSpan={5} className="h-24 text-center">
                       No users found.
                     </TableCell>
                   </TableRow>
