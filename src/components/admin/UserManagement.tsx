@@ -92,23 +92,29 @@ export function UserManagement() {
   };
   
   const renderTroubleshooting = () => (
-    <div className="space-y-2 text-sm">
-        <p>This error means your account lacks the necessary permissions in the database.</p>
-        <p className="font-semibold">Troubleshooting Checklist:</p>
-        <ol className="list-decimal list-inside space-y-2">
+    <div className="space-y-4 text-sm">
+        <p>This error means your account lacks the necessary permissions in the database. Since you've already confirmed the rules and project ID, the issue is very likely a subtle data error for your user in Firestore.</p>
+        <p className="font-semibold">Please perform this final check in the Firebase Console:</p>
+        <ol className="list-decimal list-inside space-y-3">
             <li>
-                <strong>Correct Account:</strong> Are you logged in as the admin?
-                <ul className="list-disc list-inside pl-4 mt-1 bg-background/50 p-2 rounded-md">
-                    <li>The app sees you as: <strong className="text-primary">{currentUser?.email || 'Not Logged In'}</strong></li>
-                    <li>Your admin status is: <strong className="text-primary">{currentUser?.isAdmin ? 'Admin' : 'Not an Admin'}</strong></li>
-                    <li className="text-xs italic">Only the user with the email '{ADMIN_EMAIL}' should be an admin.</li>
+                <strong>Go to Firestore Database &rarr; `users` collection.</strong>
+            </li>
+            <li>
+                <strong>Find your user document.</strong> The app sees you as <strong className="text-primary">{currentUser?.email || 'Not Logged In'}</strong> (with Admin status: <strong className="text-primary">{currentUser?.isAdmin ? 'Admin' : 'Not an Admin'}</strong>). The document ID is your User UID from the Authentication tab.
+            </li>
+            <li>
+                <strong>Check the `isAdmin` field VERY carefully:</strong>
+                <ul className="list-disc list-inside pl-4 mt-2 space-y-1 bg-background/50 p-3 rounded-md">
+                    <li>
+                      <strong>Case-Sensitivity:</strong> The field name must be exactly `isAdmin` (lowercase 'i', uppercase 'A'). Not `isadmin` or `IsAdmin`.
+                    </li>
+                    <li>
+                      <strong>Data Type:</strong> The value must be a <strong className="text-primary">boolean</strong>, not a string. It should say `true` (boolean), not `"true"` (string).
+                    </li>
                 </ul>
             </li>
-            <li>
-                <strong>Correct Firestore Rules:</strong> Have you published the rules from <code className="text-xs bg-muted p-1 rounded">PROPOSED_FIRESTORE_RULES.md</code> in your Firebase project?
-            </li>
-            <li>
-                <strong>Correct Firebase Project:</strong> Does the Project ID in your Firebase Console match the <code className="text-xs bg-muted p-1 rounded">NEXT_PUBLIC_FIREBASE_PROJECT_ID</code> in your <code className="text-xs bg-muted p-1 rounded">.env.local</code> file? A mismatch is a very common cause of this error.
+             <li>
+                <strong>Confirm the Rules:</strong> As a last resort, please re-copy the rules from <code className="text-xs bg-muted p-1 rounded">PROPOSED_FIRESTORE_RULES.md</code> and publish them again, just in case a previous attempt didn't save correctly.
             </li>
         </ol>
     </div>
@@ -127,7 +133,7 @@ export function UserManagement() {
           {fetchError && (
              <Alert variant="destructive" className="mb-4">
               <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Access Error</AlertTitle>
+              <AlertTitle>Access Error: Final Check</AlertTitle>
               <AlertDescription>
                 {renderTroubleshooting()}
               </AlertDescription>
