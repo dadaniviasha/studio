@@ -53,21 +53,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
       if (firebaseUser) {
-        // User is signed in, fetch their document from Firestore.
-        let appUserDoc = await getUserDocument(firebaseUser.uid);
-        
-        // This is a fallback for robustness: if a user exists in Auth but not Firestore, create their doc.
-        if (!appUserDoc) {
-          // This call is now more robust and prevents race conditions.
-          await createUserDocument(firebaseUser); 
-          appUserDoc = await getUserDocument(firebaseUser.uid);
-        }
+        try {
+          // User is signed in, fetch their document from Firestore.
+          let appUserDoc = await getUserDocument(firebaseUser.uid);
+          
+          if (!appUserDoc) {
+            // If user doc doesn't exist, create it.
+            await createUserDocument(firebaseUser); 
+            appUserDoc = await getUserDocument(firebaseUser.uid);
+          }
 
-        if (appUserDoc) {
-          setCurrentUser(appUserDoc);
-        } else {
-           setCurrentUser(null);
-           toast({ title: "Login Error", description: "Could not retrieve your user data. Please try again.", variant: "destructive" });
+          if (appUserDoc) {
+            setCurrentUser(appUserDoc);
+          } else {
+             // This case is unlikely if creation is successful, but good to have a fallback.
+             setCurrentUser(null);
+             toast({ title: "Login Error", description: "Could not retrieve your user data after creation. Please try again.", variant: "destructive" });
+          }
+        } catch (error: any) {
+            console.error("Firestore error during auth state change:", error);
+            // Specifically check for the offline error code
+            if (error.code === 'unavailable') {
+                 toast({
+                    title: "Connection Error",
+                    description: "Cannot connect to the database. Please check your internet connection and ensure your Firebase project details (especially Project ID) are correct in .env.local.",
+                    variant: "destructive",
+                    duration: 10000,
+                });
+            } else {
+                toast({ title: "Database Error", description: "An error occurred while fetching your data.", variant: "destructive" });
+            }
+            setCurrentUser(null); // Log out user if we can't get their data
         }
       } else {
         // User is signed out.
