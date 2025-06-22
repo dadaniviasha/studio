@@ -9,12 +9,15 @@ import { Badge } from '@/components/ui/badge';
 import { CheckCircle, XCircle, ListChecks } from 'lucide-react';
 import type { WithdrawalRequest } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from '@/contexts/AuthContext';
+import { processWithdrawalAction } from '@/server/actions';
 
 const WITHDRAWAL_REQUESTS_STORAGE_KEY = 'CROTOS_WITHDRAWAL_REQUESTS';
 
 export function PendingWithdrawals() {
   const [requests, setRequests] = useState<WithdrawalRequest[]>([]);
   const { toast } = useToast();
+  const { currentUser } = useAuth();
 
   useEffect(() => {
     const updateStateFromStorage = () => {
@@ -42,18 +45,43 @@ export function PendingWithdrawals() {
     };
   }, []);
 
-  const handleProcessRequest = (requestId: string, newStatus: 'approved' | 'rejected') => {
+  const handleProcessRequest = async (request: WithdrawalRequest, newStatus: 'approved' | 'rejected') => {
+    if (newStatus === 'approved') {
+      if (!currentUser) {
+        toast({ title: "Authentication Error", description: "Cannot verify your admin identity. Please log in again.", variant: "destructive" });
+        return;
+      }
+
+      // Call the server action to check permissions and update the balance in the database.
+      const result = await processWithdrawalAction({
+        adminId: currentUser.id,
+        userId: request.userId,
+        amount: request.amount,
+        requestId: request.id
+      });
+
+      if (!result.success) {
+        toast({ title: "Approval Failed", description: result.message, variant: "destructive" });
+        return; // Stop if the balance update failed.
+      }
+      
+      toast({ title: "Withdrawal Approved", description: result.message });
+    } else { // 'rejected'
+      toast({ title: "Request Rejected", description: `Withdrawal for ${request.username} has been rejected.` });
+    }
+    
+    // This part runs for both 'rejected' and successfully 'approved' requests.
+    // It updates the request's status in local storage.
     const updatedRequests = requests.map(req =>
-      req.id === requestId ? { ...req, status: newStatus, processedAt: Date.now() } : req
+      req.id === request.id ? { ...req, status: newStatus, processedAt: Date.now() } : req
     );
     
     try {
         localStorage.setItem(WITHDRAWAL_REQUESTS_STORAGE_KEY, JSON.stringify(updatedRequests));
-        setRequests(updatedRequests); // Update state locally immediately
-        toast({ title: `Request ${newStatus}`, description: `Withdrawal request ${requestId} has been ${newStatus}.` });
+        setRequests(updatedRequests);
     } catch (error) {
         console.error("Failed to update withdrawal requests in localStorage:", error);
-        toast({ title: "Update Failed", description: "Could not process the request.", variant: "destructive" });
+        toast({ title: "Storage Update Failed", description: "DB was updated, but could not update the request status locally.", variant: "destructive" });
     }
   };
   
@@ -93,10 +121,10 @@ export function PendingWithdrawals() {
                     <TableCell>₹{req.amount.toFixed(2)}</TableCell>
                     <TableCell>{new Date(req.requestedAt).toLocaleString()}</TableCell>
                     <TableCell className="text-right space-x-2">
-                      <Button variant="ghost" size="sm" className="text-green-500 hover:bg-green-500/10" onClick={() => handleProcessRequest(req.id, 'approved')}>
+                      <Button variant="ghost" size="sm" className="text-green-500 hover:bg-green-500/10" onClick={() => handleProcessRequest(req, 'approved')}>
                         <CheckCircle className="mr-1 h-4 w-4" /> Approve
                       </Button>
-                      <Button variant="ghost" size="sm" className="text-red-500 hover:bg-red-500/10" onClick={() => handleProcessRequest(req.id, 'rejected')}>
+                      <Button variant="ghost" size="sm" className="text-red-500 hover:bg-red-500/10" onClick={() => handleProcessRequest(req, 'rejected')}>
                         <XCircle className="mr-1 h-4 w-4" /> Reject
                       </Button>
                     </TableCell>

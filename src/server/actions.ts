@@ -104,27 +104,51 @@ export async function requestWithdrawalAction(args: RequestWithdrawalArgs): Prom
 
 interface ProcessWithdrawalArgs {
     requestId: string;
-    status: 'approved' | 'rejected';
     adminId: string;
+    userId: string;
+    amount: number;
 }
 export async function processWithdrawalAction(args: ProcessWithdrawalArgs): Promise<{ success: boolean; message: string }> {
     console.log("Processing withdrawal:", args);
-    
-    // const request = await getWithdrawalRequest(args.requestId);
-    // if (!request || request.status !== 'pending') {
-    //   return { success: false, message: "Invalid or already processed request." };
-    // }
 
-    // if (args.status === 'approved') {
-        // Deduct from user balance if not already on hold
-        // Mark request as approved
-    // } else {
-        // Release hold if any
-        // Mark request as rejected
-    // }
-    // await updateWithdrawalRequestStatus(args.requestId, args.status, args.adminId);
+    if (args.amount <= 0) {
+        return { success: false, message: "Withdrawal amount must be positive." };
+    }
 
-    return { success: true, message: `Withdrawal request ${args.requestId} has been ${args.status}.` };
+    try {
+        const adminUser = await getUserDocument(args.adminId);
+        if (!adminUser || !adminUser.isAdmin) {
+            return { 
+                success: false, 
+                message: "Authorization Failed. You do not have privileges to process withdrawals." 
+            };
+        }
+
+        const userToUpdate = await getUserDocument(args.userId);
+        if (!userToUpdate) {
+            return { success: false, message: `User with ID ${args.userId} not found.` };
+        }
+
+        if (userToUpdate.walletBalance < args.amount) {
+            return {
+                success: false,
+                message: `${userToUpdate.username}'s balance (₹${userToUpdate.walletBalance.toFixed(2)}) is insufficient for this withdrawal.`,
+            };
+        }
+        
+        const newBalance = userToUpdate.walletBalance - args.amount;
+        await updateUserBalanceInDb(args.userId, newBalance);
+
+        return { success: true, message: `Withdrawal approved for ${userToUpdate.username}. New balance: ₹${newBalance.toFixed(2)}.` };
+        
+    } catch (error: any) {
+        console.error("Error processing withdrawal via server action:", error);
+        if (error.code === 'permission-denied') {
+            const specificMessage = "Permission Denied by Database. Please ensure Firestore rules are published and your admin account has 'isAdmin: true' flag.";
+            return { success: false, message: specificMessage };
+        }
+        return { success: false, message: "A server error occurred." };
+    }
 }
 
 export async function getAllUsersAction(): Promise<User[]> {
