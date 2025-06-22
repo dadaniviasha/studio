@@ -6,6 +6,7 @@ import { ResultController } from '@/components/admin/ResultController';
 import { PendingWithdrawals } from '@/components/admin/PendingWithdrawals';
 import { PendingDeposits } from '@/components/admin/PendingDeposits';
 import { CurrentBetsOverview } from '@/components/admin/CurrentBetsOverview';
+import { UserManagement } from '@/components/admin/UserManagement';
 import { ShieldCheck, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -67,6 +68,8 @@ export default function AdminPage() {
           </div>
 
           <CurrentBetsOverview />
+          
+          <UserManagement />
 
         </div>
 
