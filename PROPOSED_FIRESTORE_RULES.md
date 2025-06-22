@@ -22,7 +22,7 @@ Open a new browser tab and navigate to the [Firebase Console](https://console.fi
 
 You will see an editor with some default rules. **Delete all the text** in that editor and **replace it with the rules below**.
 
-This new ruleset specifically allows a user to read or update another user's data **only if their own user document has an `isAdmin` field set to `true`**.
+This new ruleset specifically allows a user to perform admin actions **only if their own user document has an `isAdmin` field set to `true`**.
 
 ```
 rules_version = '2';
@@ -58,13 +58,27 @@ Click the **Publish** button above the editor. The changes might take a minute t
 
 ---
 
-### **IMPORTANT: The Final Check**
+### **CRITICAL: The Final Check**
 
-If you've updated the rules and still see the error, the problem is almost always the `isAdmin` flag on your user account in the database.
+If you have already published the rules and you still see a "permission denied" error, the problem is **100% guaranteed** to be the `isAdmin` flag on your user account in the database.
 
-1.  In the Firebase Console, go to **Firestore Database** -> **Data** tab.
-2.  In the `users` collection, find the document with the ID that matches your admin user's UID (you can find this in the Firebase Authentication tab).
-3.  Ensure that document contains a field named exactly **`isAdmin`** (lowercase 'i', uppercase 'A').
-4.  The value of this field **MUST be a boolean `true`**, not the string `"true"`.
+This is the most common point of failure. Please check it very carefully.
 
-Once you publish these rules and confirm your admin user has the `isAdmin: true` flag, the error will be resolved.
+1.  Go to your **Firebase Console**.
+2.  Navigate to **Firestore Database** -> **Data** tab.
+3.  In the `users` collection, find the document that has your admin user's UID. (You can find your UID in the **Authentication** tab).
+4.  Look at the fields for that user. You **MUST** have a field that looks exactly like this:
+
+    ```
+    isAdmin: (boolean) true
+    ```
+
+5.  If the field is missing, you must add it.
+    -   Click "**+ Add field**".
+    -   Field name: `isAdmin`
+    -   Type: `boolean`
+    -   Value: `true`
+
+6.  If the field exists but is wrong (e.g., it's a string `"true"`), you must delete it and re-add it with the correct `boolean` type.
+
+Once you publish the rules AND confirm your admin user has the `isAdmin: true` boolean flag, the error will be resolved.
