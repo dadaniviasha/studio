@@ -70,7 +70,10 @@ export function UserManagement() {
   };
 
   const handleUpdateBalance = async () => {
-    if (!editDialog.user) return;
+    if (!editDialog.user || !currentUser) {
+      toast({ title: "Error", description: "Admin user not found. Please log in again.", variant: "destructive" });
+      return;
+    }
 
     const balanceValue = parseFloat(editDialog.newBalance);
     if (isNaN(balanceValue) || balanceValue < 0) {
@@ -82,12 +85,12 @@ export function UserManagement() {
       return;
     }
 
-    const result = await updateUserBalanceAction(editDialog.user.id, balanceValue);
+    const result = await updateUserBalanceAction(currentUser.id, editDialog.user.id, balanceValue);
 
     if (result.success) {
       toast({
         title: "Balance Updated",
-        description: `${editDialog.user.username}'s balance has been set to ₹${balanceValue.toFixed(2)}.`,
+        description: result.message,
       });
       // Update state locally to reflect change immediately
       setState(prevState => ({

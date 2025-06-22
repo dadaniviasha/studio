@@ -165,18 +165,29 @@ export async function getAllUsersAction(): Promise<User[]> {
     }
 }
 
-export async function updateUserBalanceAction(userId: string, newBalance: number): Promise<{ success: boolean; message: string }> {
+export async function updateUserBalanceAction(adminId: string, userId: string, newBalance: number): Promise<{ success: boolean; message: string }> {
     if (newBalance < 0) {
         return { success: false, message: "Balance cannot be negative." };
     }
     
-    // TODO: Add permission check here in a real app to ensure only admin can call this
-    
     try {
+        const adminUser = await getUserDocument(adminId);
+        if (!adminUser || !adminUser.isAdmin) {
+            return {
+                success: false,
+                message: "Authorization Failed. You do not have privileges to update user balances."
+            };
+        }
+
         await updateUserBalanceInDb(userId, newBalance);
-        return { success: true, message: `Balance updated for user ${userId}.` };
-    } catch (error) {
+        const user = await getUserDocument(userId);
+        return { success: true, message: `Balance for ${user?.username || 'user'} updated successfully.` };
+    } catch (error: any) {
         console.error("Error updating user balance via server action:", error);
+        if (error.code === 'permission-denied') {
+            const specificMessage = "Permission Denied by Database. Please ensure Firestore rules from PROPOSED_FIRESTORE_RULES.md are published and your admin account has the 'isAdmin: true' flag in the database.";
+            return { success: false, message: specificMessage };
+       }
         return { success: false, message: "A server error occurred." };
     }
 }
