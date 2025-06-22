@@ -10,7 +10,6 @@ import { ShieldCheck, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { SystemActions } from '@/components/admin/SystemActions';
 
 export default function AdminPage() {
   const { currentUser, loading: authLoading } = useAuth();
@@ -61,7 +60,6 @@ export default function AdminPage() {
         
         <div className="space-y-8">
           <ResultController />
-          <SystemActions />
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-start">
               <PendingDeposits />
