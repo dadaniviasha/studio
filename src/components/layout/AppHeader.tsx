@@ -62,7 +62,7 @@ export function AppHeader() {
               <>
                 <Button variant="outline" className="text-primary border-primary hover:bg-primary/10 cursor-default">
                   <Wallet className="mr-2 h-5 w-5" />
-                  ₹{currentUser.walletBalance.toFixed(2)}
+                  ₹{(currentUser.walletBalance ?? 0).toFixed(2)}
                 </Button>
                 <Avatar className="h-9 w-9">
                   {/* Placeholder for user avatar image */}
