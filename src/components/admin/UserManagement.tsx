@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
@@ -52,11 +51,8 @@ export function UserManagement() {
       const userList = await getAllUsersAction();
       setState(prev => ({ ...prev, users: userList, isLoading: false }));
     } catch (error: any) {
-      let description = "An unexpected error occurred. Could not load the list of users.";
-      if (error?.message?.includes('insufficient permissions') || error?.message?.includes('permission-denied')) {
-        description = "You do not have permission to view the user list. This is a common setup issue caused by Firestore's Security Rules.";
-      }
-      setState(prev => ({ ...prev, error: description, isLoading: false, users: [] }));
+      // The error from the action is specific and helpful, so we pass it directly.
+      setState(prev => ({ ...prev, error: error.message, isLoading: false, users: [] }));
       console.error("Failed to fetch users:", error);
     }
   }, []);
@@ -134,10 +130,8 @@ export function UserManagement() {
                 <AlertTriangle className="h-4 w-4" />
                 <AlertTitle>Permission Error: Could Not Load Users</AlertTitle>
                 <AlertDescription>
-                    <div className="space-y-2 mt-2">
-                        <p>The app was blocked by your database security rules. This is a required security step to protect user data.</p>
-                        <p className="font-semibold">To fix this, please follow the simple, one-time instructions in the file named <code className="bg-muted px-1.5 py-1 rounded-md text-destructive/80">PROPOSED_FIRESTORE_RULES.md</code> in your project's file list.</p>
-                    </div>
+                    {/* Use the specific error message from the state */}
+                    <p className="font-semibold mt-2">{state.error}</p>
                 </AlertDescription>
               </Alert>
             </TableCell>
