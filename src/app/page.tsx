@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { AlertCircle, Info, Gift } from 'lucide-react';
+import { Info, Gift } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 
@@ -27,6 +27,7 @@ const ADMIN_RESULT_STORAGE_KEY = 'CROTOS_ADMIN_RESULT_OVERRIDE';
 const ROUND_ID_STORAGE_KEY = 'CROTOS_CURRENT_ROUND_ID'; // Kept for admin panel compatibility
 const ACTIVE_BETS_STORAGE_KEY = 'CROTOS_ACTIVE_BETS';
 const ROUND_STORAGE_KEY = 'CROTOS_CURRENT_ROUND';
+const ROUND_COUNTER_STORAGE_KEY = 'CROTOS_ROUND_COUNTER'; // For sequential round IDs
 
 export default function HomePage() {
   const { currentUser, updateBalance: updateAuthBalance, loading: authLoading } = useAuth();
@@ -85,8 +86,15 @@ export default function HomePage() {
         console.error("Failed to load round from localStorage", error);
         localStorage.removeItem(ROUND_STORAGE_KEY);
       }
+      
+      // If we are here, we need a new round. Let's get/increment the counter.
+      const storedCounterStr = localStorage.getItem(ROUND_COUNTER_STORAGE_KEY);
+      const currentCounter = storedCounterStr ? parseInt(storedCounterStr, 10) : 0;
+      const newCounter = currentCounter + 1;
+      localStorage.setItem(ROUND_COUNTER_STORAGE_KEY, newCounter.toString());
+      
       const newRound: GameRound = {
-        id: `r_${Math.floor(Date.now() / 1000)}`,
+        id: `${newCounter}`,
         startTime: Date.now(),
         endTime: Date.now() + GAME_ROUND_DURATION_SECONDS * 1000,
         status: 'betting'
@@ -289,7 +297,13 @@ export default function HomePage() {
       }
 
       setTimeout(() => {
-        const newRoundId = `r_${Math.floor(Date.now() / 1000)}`;
+        const storedCounterStr = localStorage.getItem(ROUND_COUNTER_STORAGE_KEY);
+        const currentCounter = storedCounterStr ? parseInt(storedCounterStr, 10) : 0;
+        const newCounter = currentCounter + 1;
+        localStorage.setItem(ROUND_COUNTER_STORAGE_KEY, newCounter.toString());
+        
+        const newRoundId = `${newCounter}`;
+        
         setRound({
           id: newRoundId,
           startTime: Date.now(),
@@ -504,3 +518,5 @@ export default function HomePage() {
       <AppFooter />
     </div>
   );
+
+    
