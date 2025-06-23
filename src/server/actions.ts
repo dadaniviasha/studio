@@ -14,6 +14,9 @@ async function getAdminUserDoc(uid: string): Promise<User | null> {
     return userSnap.exists ? userSnap.data() as User : null;
 }
 
+const ADMIN_DB_ERROR_MESSAGE = "Admin features are disabled. Ensure FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, and FIREBASE_PRIVATE_KEY are correctly set in your environment and restart the server.";
+
+
 // --- Public Server Actions ---
 
 // This action remains unchanged as it's a simulation and doesn't touch the DB.
@@ -96,7 +99,7 @@ export async function processWithdrawalAction(args: {
     requestId: string;
 }): Promise<{ success: boolean; message: string }> {
     if (!adminDb) {
-        return { success: false, message: "Admin database is not configured. Check server logs." };
+        return { success: false, message: ADMIN_DB_ERROR_MESSAGE };
     }
 
     if (args.amount <= 0) {
@@ -141,8 +144,8 @@ export async function processWithdrawalAction(args: {
  */
 export async function getAllUsersAction(): Promise<User[]> {
     if (!adminDb) {
-        console.error("Cannot get all users: Admin database is not configured.");
-        return [];
+        console.error(ADMIN_DB_ERROR_MESSAGE);
+        throw new Error(ADMIN_DB_ERROR_MESSAGE);
     }
     
     try {
@@ -160,7 +163,7 @@ export async function getAllUsersAction(): Promise<User[]> {
  */
 export async function updateUserBalanceAction(adminId: string, userId: string, newBalance: number): Promise<{ success: boolean; message: string }> {
      if (!adminDb) {
-        return { success: false, message: "Admin database is not configured. Check server logs." };
+        return { success: false, message: ADMIN_DB_ERROR_MESSAGE };
     }
     
     if (newBalance < 0) {
@@ -189,7 +192,7 @@ export async function updateUserBalanceAction(adminId: string, userId: string, n
  */
 export async function approveDepositAction(adminId: string, userId: string, depositAmount: number): Promise<{ success: boolean; message: string; newBalance?: number }> {
     if (!adminDb) {
-        return { success: false, message: "Admin database is not configured. Check server logs." };
+        return { success: false, message: ADMIN_DB_ERROR_MESSAGE };
     }
 
     if (depositAmount <= 0) {
