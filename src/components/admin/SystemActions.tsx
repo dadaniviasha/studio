@@ -29,15 +29,25 @@ const KEYS_TO_CLEAR = [
 export function SystemActions() {
     const { toast } = useToast();
 
-    const handleReset = () => {
+    const handleReset = async () => {
         try {
+            // Clear localStorage
             KEYS_TO_CLEAR.forEach(key => {
                 localStorage.removeItem(key);
             });
             
+            // Clear sessionStorage
+            sessionStorage.clear();
+
+            // Clear cache storage if available
+            if ('caches' in window) {
+                const keys = await caches.keys();
+                await Promise.all(keys.map(key => caches.delete(key)));
+            }
+            
             toast({
                 title: "System State Reset",
-                description: "The game state has been cleared. The page will now reload.",
+                description: "All application data in browser storage has been cleared. The page will now reload.",
             });
 
             // Delay reload slightly to allow toast to show
@@ -49,7 +59,7 @@ export function SystemActions() {
             console.error("Failed to reset game state:", error);
             toast({
                 title: "Reset Failed",
-                description: "Could not clear game state from local storage.",
+                description: "Could not clear all browser storage.",
                 variant: "destructive",
             });
         }
@@ -68,9 +78,9 @@ export function SystemActions() {
             <CardContent>
                 <div className="flex items-center justify-between p-4 border border-destructive/20 rounded-lg bg-destructive/10">
                     <div>
-                        <h4 className="font-semibold">Reset All Game & User Data</h4>
+                        <h4 className="font-semibold">Reset All Browser Data</h4>
                         <p className="text-sm text-muted-foreground">
-                            This will clear all active bets, round history, and all pending user deposit/withdrawal requests from browser storage. It simulates a full application restart.
+                            This clears all active bets, round history, and pending requests from browser storage (local, session, and cache). It simulates a full application restart.
                         </p>
                     </div>
                     <AlertDialog>
@@ -83,7 +93,7 @@ export function SystemActions() {
                             <AlertDialogHeader>
                             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                             <AlertDialogDescription>
-                                This action cannot be undone. This will permanently delete all current round data, active bets, and pending requests stored in the browser.
+                                This action cannot be undone. This will permanently delete all current round data, active bets, and pending requests stored in the browser's storage. It does not affect user data in the database.
                             </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
