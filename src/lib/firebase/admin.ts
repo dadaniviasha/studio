@@ -3,49 +3,72 @@ import admin from 'firebase-admin';
 
 // This file is intended to be used in 'use server' context only.
 
-// Check if the required environment variables are present
-const hasAdminConfig = 
-  process.env.FIREBASE_PROJECT_ID &&
-  process.env.FIREBASE_CLIENT_EMAIL &&
-  process.env.FIREBASE_PRIVATE_KEY;
+console.log("--- Initializing Firebase Admin SDK: Checking server environment variables... ---");
 
-let app: admin.app.App;
+const adminConfig = {
+    projectId: process.env.FIREBASE_PROJECT_ID,
+    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+    privateKey: process.env.FIREBASE_PRIVATE_KEY,
+};
 
-if (!admin.apps.length) {
-  if (hasAdminConfig) {
-      try {
+let configIsValid = true;
+const keyToEnvVarMap: { [key: string]: string } = {
+  projectId: 'FIREBASE_PROJECT_ID',
+  clientEmail: 'FIREBASE_CLIENT_EMAIL',
+  privateKey: 'FIREBASE_PRIVATE_KEY'
+};
+
+for (const [key, value] of Object.entries(adminConfig)) {
+  const envVarName = keyToEnvVarMap[key];
+  if (!value) {
+    console.error(`CRITICAL: Firebase Admin config key '${envVarName}' is missing. Please check your .env.local file. This is required for all admin features.`);
+    configIsValid = false;
+  } else {
+     console.log(`- ${envVarName}: Found.`);
+  }
+}
+
+let app: admin.app.App | null = null;
+const ADMIN_INIT_ERROR = "Firebase Admin SDK is not configured. Admin features will be disabled. Ensure FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, and FIREBASE_PRIVATE_KEY are set in .env.local and that the server has been restarted.";
+
+if (admin.apps.length) {
+    app = admin.app();
+} else if (configIsValid) {
+    try {
         app = admin.initializeApp({
             credential: admin.credential.cert({
-                projectId: process.env.FIREBASE_PROJECT_ID,
-                clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-                privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+                projectId: adminConfig.projectId,
+                clientEmail: adminConfig.clientEmail,
+                privateKey: adminConfig.privateKey!.replace(/\\n/g, '\n'),
             }),
         });
         console.log("Firebase Admin SDK initialized successfully.");
-      } catch (error: any) {
-          console.error("CRITICAL: Firebase Admin SDK initialization failed. Please ensure FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, and FIREBASE_PRIVATE_KEY are correctly set in your .env.local file and that the app has been restarted.", error.message);
-      }
-  } else {
-    console.warn(
-        "WARNING: Firebase Admin SDK credentials are not set in .env.local. " +
-        "Admin features will not work. Please provide FIREBASE_PROJECT_ID, " +
-        "FIREBASE_CLIENT_EMAIL, and FIREBASE_PRIVATE_KEY."
-    );
-  }
+    } catch (error: any) {
+        console.error("CRITICAL: Firebase Admin SDK initialization failed with an error. Ensure your service account credentials in .env.local are correct and that the server has been restarted.", error.message);
+        app = null;
+    }
 } else {
-  app = admin.app();
+    console.error("CRITICAL: Firebase Admin SDK not initialized due to missing configuration. See logs above.");
 }
-
-const ADMIN_DB_ERROR_MESSAGE = "Admin features are disabled. Ensure FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, and FIREBASE_PRIVATE_KEY are correctly set in your environment and restart the server.";
-
 
 /**
  * Returns the initialized Firestore Admin instance.
  * Throws an error if the Admin SDK is not configured.
  */
 export async function getAdminDb() {
-  if (!hasAdminConfig || !app) {
-    throw new Error(ADMIN_DB_ERROR_MESSAGE);
+  if (!app) {
+    throw new Error(ADMIN_INIT_ERROR);
   }
   return app.firestore();
+}
+
+/**
+ * Returns the initialized Firebase Auth Admin instance.
+ * Throws an error if the Admin SDK is not configured.
+ */
+export async function getAdminAuth() {
+  if (!app) {
+    throw new Error(ADMIN_INIT_ERROR);
+  }
+  return app.auth();
 }

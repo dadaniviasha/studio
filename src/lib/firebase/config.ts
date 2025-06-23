@@ -7,7 +7,7 @@ import { getAuth, type Auth } from "firebase/auth";
 import { getFirestore, type Firestore } from "firebase/firestore";
 
 // --- Firebase Initialization and Debugging ---
-console.log("--- Initializing Firebase: Checking environment variables... ---");
+console.log("--- Initializing Firebase Client SDK: Checking NEXT_PUBLIC_ environment variables... ---");
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -33,7 +33,7 @@ const keyToEnvVarMap: { [key: string]: string } = {
 for (const [key, value] of Object.entries(firebaseConfig)) {
   const envVarName = keyToEnvVarMap[key];
   if (!value) {
-    console.error(`CRITICAL: Firebase config key '${envVarName}' is missing. Please check your .env.local file.`);
+    console.error(`CRITICAL: Firebase Client config key '${envVarName}' is missing. Please check your .env.local file.`);
     configIsValid = false;
   } else {
     console.log(`- ${envVarName}: Found.`);
@@ -47,15 +47,15 @@ let auth: Auth | null = null;
 let db: Firestore | null = null;
 
 if (FBCONFIG_MISSING) {
-  console.error("Firebase initialization failed due to missing configuration. Please check the errors above, correct your .env.local file, and ensure the app has restarted.");
+  console.error("Firebase Client SDK initialization failed due to missing configuration. The application's frontend might not work correctly. Please check the errors above.");
 } else {
   try {
     app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
     auth = getAuth(app);
     db = getFirestore(app);
-    console.log("Firebase initialized successfully.");
+    console.log("Firebase Client SDK initialized successfully.");
   } catch (error) {
-    console.error("Error initializing Firebase:", error);
+    console.error("Error initializing Firebase Client SDK:", error);
     // This might happen if keys are present but invalid.
     app = null;
     auth = null;
