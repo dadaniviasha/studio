@@ -4,7 +4,9 @@ import type { User as AppUser } from '@/lib/types';
 import type { User as FirebaseUser } from 'firebase/auth';
 
 export const SIGNUP_BONUS = 50;
-export const ADMIN_EMAIL = 'dadaniviasha@gmail.com'; // Admin email is explicitly defined here and now exported.
+// This email is used at SIGN UP time to grant the first user admin privileges.
+// After signup, this value is not used to check for admin status.
+export const ADMIN_EMAIL = 'dadaniviasha@gmail.com'; 
 
 /**
  * Creates a new user document in Firestore.
@@ -36,7 +38,7 @@ export async function createUserDocument(user: FirebaseUser, formUsername?: stri
 }
 
 /**
- * Fetches a user's data from Firestore.
+ * Fetches a user's data from Firestore using the client SDK.
  * @param uid The user's unique ID.
  * @returns The user data or null if not found.
  */
@@ -55,23 +57,12 @@ export async function getUserDocument(uid: string): Promise<AppUser | null> {
   }
 }
 
-/**
- * Fetches all users from Firestore.
- * @returns An array of user data.
- */
-export async function getAllUsers(): Promise<AppUser[]> {
-  if (!db) return [];
-  const usersRef = collection(db, 'users');
-  // This query now fetches all users, including admins.
-  const q = query(usersRef);
-  const querySnapshot = await getDocs(q);
-  const usersList = querySnapshot.docs.map(doc => doc.data() as AppUser);
-  return usersList;
-}
-
 
 /**
  * Updates a user's wallet balance in Firestore.
+ * This function uses the CLIENT SDK and is intended for use by the user themselves
+ * (e.g., deducting a bet amount), subject to Firestore rules.
+ * Admin-level updates are now handled by server actions using the Admin SDK.
  * @param uid The user's unique ID.
  * @param newBalance The new wallet balance.
  */

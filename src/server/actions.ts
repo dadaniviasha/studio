@@ -2,34 +2,34 @@
 
 import type { Bet, ColorOption, NumberOption, GameResult, WithdrawalRequest, User } from "@/lib/types";
 import { MIN_BET_AMOUNT, MIN_WITHDRAWAL_AMOUNT } from "@/lib/constants";
-import { getAllUsers, updateUserBalanceInDb, getUserDocument } from "@/lib/firebase/firestore";
+import { adminDb } from "@/lib/firebase/admin"; // Using Admin SDK now
+import { FieldValue } from 'firebase-admin/firestore';
 
-// This is a placeholder file. In a real application, these actions would interact with a database,
-// handle authentication, and perform actual game logic. For this scaffold, they will mostly
-// log actions and return simulated responses.
+// --- Helper Functions for Admin Actions ---
 
-interface PlaceBetArgs {
+async function getAdminUserDoc(uid: string): Promise<User | null> {
+    if (!adminDb) return null;
+    const userRef = adminDb.collection('users').doc(uid);
+    const userSnap = await userRef.get();
+    return userSnap.exists ? userSnap.data() as User : null;
+}
+
+// --- Public Server Actions ---
+
+// This action remains unchanged as it's a simulation and doesn't touch the DB.
+export async function placeBetAction(args: {
   userId: string;
   roundId: string;
   type: "color" | "number";
   selection: ColorOption | NumberOption;
   amount: number;
-}
-
-export async function placeBetAction(args: PlaceBetArgs): Promise<{ success: boolean; message: string; bet?: Bet, newBalance?: number }> {
+}): Promise<{ success: boolean; message: string; bet?: Bet, newBalance?: number }> {
   console.log("Placing bet:", args);
 
   if (args.amount < MIN_BET_AMOUNT) {
     return { success: false, message: `Minimum bet amount is ₹${MIN_BET_AMOUNT}.` };
   }
 
-  // Simulate balance check (would fetch from DB)
-  // const userBalance = await getUserBalance(args.userId);
-  // if (userBalance < args.amount) {
-  //   return { success: false, message: "Insufficient balance." };
-  // }
-
-  // Simulate deducting balance and saving bet
   const newBet: Bet = {
     id: `bet_${Date.now()}`,
     userId: args.userId,
@@ -39,51 +39,37 @@ export async function placeBetAction(args: PlaceBetArgs): Promise<{ success: boo
     amount: args.amount,
     timestamp: Date.now(),
   };
-  
-  // const updatedBalance = userBalance - args.amount;
-  // await updateUserBalance(args.userId, updatedBalance);
-  // await saveBet(newBet);
 
-  return { success: true, message: "Bet placed successfully!", bet: newBet, newBalance: 0 /*updatedBalance*/ };
+  return { success: true, message: "Bet placed successfully!", bet: newBet, newBalance: 0 };
 }
 
-
-interface SetNextResultArgs {
+// This action remains unchanged as it's a simulation.
+export async function setNextResultAction(args: {
   winningNumber: NumberOption;
   winningColor: ColorOption;
   finalizedBy: "admin" | "random";
-}
-export async function setNextResultAction(args: SetNextResultArgs): Promise<{ success: boolean; message: string; result?: GameResult }> {
+}): Promise<{ success: boolean; message: string; result?: GameResult }> {
   console.log("Admin setting next result:", args);
   
   const newResult: GameResult = {
     ...args,
-    roundId: `round_${Date.now()}`, // Or current active round ID
+    roundId: `round_${Date.now()}`,
     timestamp: Date.now(),
   };
-
-  // Simulate saving result and triggering payout calculations
-  // await saveGameResult(newResult);
-  // await processPayoutsForRound(newResult.roundId);
 
   return { success: true, message: "Next result set successfully.", result: newResult };
 }
 
-interface RequestWithdrawalArgs {
+// This action remains unchanged as it's a simulation.
+export async function requestWithdrawalAction(args: {
     userId: string;
     amount: number;
-}
-export async function requestWithdrawalAction(args: RequestWithdrawalArgs): Promise<{ success: boolean; message: string; request?: WithdrawalRequest}> {
+}): Promise<{ success: boolean; message: string; request?: WithdrawalRequest}> {
     console.log("Withdrawal request:", args);
 
     if (args.amount < MIN_WITHDRAWAL_AMOUNT) {
         return { success: false, message: `Minimum withdrawal amount is ₹${MIN_WITHDRAWAL_AMOUNT}.` };
     }
-
-    // const userBalance = await getUserBalance(args.userId);
-    // if (userBalance < args.amount) {
-    //   return { success: false, message: "Insufficient balance for withdrawal." };
-    // }
 
     const newRequest: WithdrawalRequest = {
         id: `wd_${Date.now()}`,
@@ -95,36 +81,35 @@ export async function requestWithdrawalAction(args: RequestWithdrawalArgs): Prom
         email: 'Unknown',
         upiId: 'Unknown'
     };
-
-    // await saveWithdrawalRequest(newRequest);
-    // Optionally, could put a hold on the funds in user's wallet
     
     return { success: true, message: "Withdrawal request submitted successfully.", request: newRequest };
 }
 
-interface ProcessWithdrawalArgs {
-    requestId: string;
+/**
+ * [ADMIN-ONLY] Processes a user's withdrawal request.
+ * This action now uses the Firebase Admin SDK to bypass Firestore security rules.
+ */
+export async function processWithdrawalAction(args: {
     adminId: string;
     userId: string;
     amount: number;
-}
-export async function processWithdrawalAction(args: ProcessWithdrawalArgs): Promise<{ success: boolean; message: string }> {
-    console.log("Processing withdrawal:", args);
+    requestId: string;
+}): Promise<{ success: boolean; message: string }> {
+    if (!adminDb) {
+        return { success: false, message: "Admin database is not configured. Check server logs." };
+    }
 
     if (args.amount <= 0) {
         return { success: false, message: "Withdrawal amount must be positive." };
     }
 
     try {
-        const adminUser = await getUserDocument(args.adminId);
+        const adminUser = await getAdminUserDoc(args.adminId);
         if (!adminUser || !adminUser.isAdmin) {
-            return { 
-                success: false, 
-                message: "Authorization Failed. You do not have privileges to process withdrawals." 
-            };
+            return { success: false, message: "Authorization Failed. Your account does not have privileges." };
         }
 
-        const userToUpdate = await getUserDocument(args.userId);
+        const userToUpdate = await getAdminUserDoc(args.userId);
         if (!userToUpdate) {
             return { success: false, message: `User with ID ${args.userId} not found.` };
         }
@@ -132,103 +117,106 @@ export async function processWithdrawalAction(args: ProcessWithdrawalArgs): Prom
         if (userToUpdate.walletBalance < args.amount) {
             return {
                 success: false,
-                message: `${userToUpdate.username}'s balance (₹${userToUpdate.walletBalance.toFixed(2)}) is insufficient for this withdrawal.`,
+                message: `${userToUpdate.username}'s balance (₹${userToUpdate.walletBalance.toFixed(2)}) is insufficient.`,
             };
         }
         
-        const newBalance = userToUpdate.walletBalance - args.amount;
-        await updateUserBalanceInDb(args.userId, newBalance);
+        const userRef = adminDb.collection('users').doc(args.userId);
+        await userRef.update({
+            walletBalance: FieldValue.increment(-args.amount)
+        });
 
-        return { success: true, message: `Withdrawal approved for ${userToUpdate.username}. New balance: ₹${newBalance.toFixed(2)}.` };
+        const newBalance = userToUpdate.walletBalance - args.amount;
+        return { success: true, message: `Withdrawal approved. ${userToUpdate.username}'s new balance: ₹${newBalance.toFixed(2)}.` };
         
     } catch (error: any) {
-        console.error("Error processing withdrawal via server action:", error);
-        if (error.code === 'permission-denied') {
-            const specificMessage = "Permission Denied by Database. Please ensure Firestore rules are published and your admin account has 'isAdmin: true' flag.";
-            return { success: false, message: specificMessage };
-        }
-        return { success: false, message: "A server error occurred." };
+        console.error("Error processing withdrawal with Admin SDK:", error);
+        return { success: false, message: "A server error occurred. Check admin credentials and server logs." };
     }
 }
 
+/**
+ * [ADMIN-ONLY] Fetches all users from Firestore using the Admin SDK.
+ * This bypasses all client-side security rules.
+ */
 export async function getAllUsersAction(): Promise<User[]> {
-    // In a real app, you might want to add pagination
+    if (!adminDb) {
+        console.error("Cannot get all users: Admin database is not configured.");
+        return [];
+    }
+    
     try {
-      return await getAllUsers();
+      const usersSnapshot = await adminDb.collection('users').get();
+      const usersList = usersSnapshot.docs.map(doc => doc.data() as User);
+      return usersList;
     } catch (error: any) {
-        if (error.code === 'permission-denied' || error.message.includes('insufficient permissions')) {
-            console.error("PERMISSION DENIED trying to list all users. This requires special Firestore rules for admins.");
-            // Re-throw the error with a more specific message that the client can handle.
-            throw new Error("Missing or insufficient permissions. This action requires admin privileges defined in Firestore rules. See PROPOSED_FIRESTORE_RULES.md for the solution.");
-        }
-        throw error; // Re-throw other errors
+        console.error("Error fetching all users with Admin SDK:", error);
+        throw new Error("Failed to fetch users. Ensure Firebase Admin credentials are set correctly in your server environment.");
     }
 }
 
+/**
+ * [ADMIN-ONLY] Updates a user's balance using the Admin SDK.
+ */
 export async function updateUserBalanceAction(adminId: string, userId: string, newBalance: number): Promise<{ success: boolean; message: string }> {
+     if (!adminDb) {
+        return { success: false, message: "Admin database is not configured. Check server logs." };
+    }
+    
     if (newBalance < 0) {
         return { success: false, message: "Balance cannot be negative." };
     }
     
     try {
-        const adminUser = await getUserDocument(adminId);
+        const adminUser = await getAdminUserDoc(adminId);
         if (!adminUser || !adminUser.isAdmin) {
-            return {
-                success: false,
-                message: "Authorization Failed. You do not have privileges to update user balances."
-            };
+            return { success: false, message: "Authorization Failed. You do not have privileges." };
         }
 
-        await updateUserBalanceInDb(userId, newBalance);
-        const user = await getUserDocument(userId);
-        return { success: true, message: `Balance for ${user?.username || 'user'} updated successfully.` };
+        const userRef = adminDb.collection('users').doc(userId);
+        await userRef.update({ walletBalance: newBalance });
+        
+        const user = await getAdminUserDoc(userId);
+        return { success: true, message: `Balance for ${user?.username || 'user'} updated to ₹${newBalance.toFixed(2)}.` };
     } catch (error: any) {
-        console.error("Error updating user balance via server action:", error);
-        if (error.code === 'permission-denied') {
-            const specificMessage = "Permission Denied by Database. Please ensure Firestore rules from PROPOSED_FIRESTORE_RULES.md are published and your admin account has the 'isAdmin: true' flag in the database.";
-            return { success: false, message: specificMessage };
-       }
-        return { success: false, message: "A server error occurred." };
+        console.error("Error updating balance with Admin SDK:", error);
+        return { success: false, message: "A server error occurred. Check admin credentials and server logs." };
     }
 }
 
+/**
+ * [ADMIN-ONLY] Approves a user's deposit request using the Admin SDK.
+ */
 export async function approveDepositAction(adminId: string, userId: string, depositAmount: number): Promise<{ success: boolean; message: string; newBalance?: number }> {
+    if (!adminDb) {
+        return { success: false, message: "Admin database is not configured. Check server logs." };
+    }
+
     if (depositAmount <= 0) {
         return { success: false, message: "Deposit amount must be positive." };
     }
 
     try {
-        // Step 1: Programmatically verify the user making the request is an admin.
-        const adminUser = await getUserDocument(adminId);
+        const adminUser = await getAdminUserDoc(adminId);
         if (!adminUser || !adminUser.isAdmin) {
-            return { 
-                success: false, 
-                message: "Authorization Failed. Your account does not have privileges to approve deposits." 
-            };
+            return { success: false, message: "Authorization Failed. You do not have privileges." };
         }
 
-        // Step 2: Proceed with the original logic, now with an extra layer of security.
-        const user = await getUserDocument(userId);
+        const userRef = adminDb.collection('users').doc(userId);
+        const user = (await userRef.get()).data() as User | undefined;
+
         if (!user) {
             return { success: false, message: `User with ID ${userId} not found.` };
         }
+        
+        await userRef.update({
+            walletBalance: FieldValue.increment(depositAmount)
+        });
 
         const newBalance = user.walletBalance + depositAmount;
-        await updateUserBalanceInDb(userId, newBalance);
-        
-        const successMessage = `${user.username}'s balance is now ₹${newBalance.toFixed(2)}.`;
-
-        return { success: true, message: successMessage, newBalance };
+        return { success: true, message: `${user.username}'s balance is now ₹${newBalance.toFixed(2)}.`, newBalance };
     } catch (error: any) {
-        console.error("Error approving deposit via server action:", error);
-        
-        // This catch block is still crucial for handling potential Firestore rule errors
-        // that might occur if the rules are misconfigured, even with the programmatic check.
-        if (error.code === 'permission-denied') {
-             const specificMessage = "Permission Denied by Database. Please ensure Firestore rules from PROPOSED_FIRESTORE_RULES.md are published and your admin account has the 'isAdmin: true' flag in the database.";
-             return { success: false, message: specificMessage };
-        }
-        
-        return { success: false, message: "A server error occurred while approving the deposit." };
+        console.error("Error approving deposit with Admin SDK:", error);
+        return { success: false, message: "A server error occurred. Check admin credentials and server logs." };
     }
 }
