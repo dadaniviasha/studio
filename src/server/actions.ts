@@ -2,19 +2,8 @@
 
 import type { Bet, ColorOption, NumberOption, GameResult, WithdrawalRequest, User } from "@/lib/types";
 import { MIN_BET_AMOUNT, MIN_WITHDRAWAL_AMOUNT } from "@/lib/constants";
-import { adminDb } from "@/lib/firebase/admin"; // Using Admin SDK now
+import { getAdminDb } from "@/lib/firebase/admin"; // Using Admin SDK now
 import { FieldValue } from 'firebase-admin/firestore';
-
-// --- Helper Functions for Admin Actions ---
-
-async function getAdminUserDoc(uid: string): Promise<User | null> {
-    if (!adminDb) return null;
-    const userRef = adminDb.collection('users').doc(uid);
-    const userSnap = await userRef.get();
-    return userSnap.exists ? userSnap.data() as User : null;
-}
-
-const ADMIN_DB_ERROR_MESSAGE = "Admin features are disabled. Ensure FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, and FIREBASE_PRIVATE_KEY are correctly set in your environment and restart the server.";
 
 
 // --- Public Server Actions ---
@@ -98,15 +87,18 @@ export async function processWithdrawalAction(args: {
     amount: number;
     requestId: string;
 }): Promise<{ success: boolean; message: string }> {
-    if (!adminDb) {
-        return { success: false, message: ADMIN_DB_ERROR_MESSAGE };
-    }
-
     if (args.amount <= 0) {
         return { success: false, message: "Withdrawal amount must be positive." };
     }
 
     try {
+        const adminDb = await getAdminDb();
+        const getAdminUserDoc = async (uid: string): Promise<User | null> => {
+            const userRef = adminDb.collection('users').doc(uid);
+            const userSnap = await userRef.get();
+            return userSnap.exists ? userSnap.data() as User : null;
+        }
+
         const adminUser = await getAdminUserDoc(args.adminId);
         if (!adminUser || !adminUser.isAdmin) {
             return { success: false, message: "Authorization Failed. Your account does not have privileges." };
@@ -134,7 +126,7 @@ export async function processWithdrawalAction(args: {
         
     } catch (error: any) {
         console.error("Error processing withdrawal with Admin SDK:", error);
-        return { success: false, message: "A server error occurred. Check admin credentials and server logs." };
+        return { success: false, message: error.message || "A server error occurred. Check admin credentials and server logs." };
     }
 }
 
@@ -143,18 +135,15 @@ export async function processWithdrawalAction(args: {
  * This bypasses all client-side security rules.
  */
 export async function getAllUsersAction(): Promise<User[]> {
-    if (!adminDb) {
-        console.error(ADMIN_DB_ERROR_MESSAGE);
-        throw new Error(ADMIN_DB_ERROR_MESSAGE);
-    }
-    
     try {
+      const adminDb = await getAdminDb();
       const usersSnapshot = await adminDb.collection('users').get();
       const usersList = usersSnapshot.docs.map(doc => doc.data() as User);
       return usersList;
     } catch (error: any) {
         console.error("Error fetching all users with Admin SDK:", error);
-        throw new Error("Failed to fetch users. Ensure Firebase Admin credentials are set correctly in your server environment.");
+        // Propagate the specific error message to the client.
+        throw new Error(error.message || "Failed to fetch users. Ensure Firebase Admin credentials are set correctly in your server environment.");
     }
 }
 
@@ -162,15 +151,18 @@ export async function getAllUsersAction(): Promise<User[]> {
  * [ADMIN-ONLY] Updates a user's balance using the Admin SDK.
  */
 export async function updateUserBalanceAction(adminId: string, userId: string, newBalance: number): Promise<{ success: boolean; message: string }> {
-     if (!adminDb) {
-        return { success: false, message: ADMIN_DB_ERROR_MESSAGE };
-    }
-    
     if (newBalance < 0) {
         return { success: false, message: "Balance cannot be negative." };
     }
     
     try {
+        const adminDb = await getAdminDb();
+        const getAdminUserDoc = async (uid: string): Promise<User | null> => {
+            const userRef = adminDb.collection('users').doc(uid);
+            const userSnap = await userRef.get();
+            return userSnap.exists ? userSnap.data() as User : null;
+        }
+
         const adminUser = await getAdminUserDoc(adminId);
         if (!adminUser || !adminUser.isAdmin) {
             return { success: false, message: "Authorization Failed. You do not have privileges." };
@@ -183,7 +175,7 @@ export async function updateUserBalanceAction(adminId: string, userId: string, n
         return { success: true, message: `Balance for ${user?.username || 'user'} updated to ₹${newBalance.toFixed(2)}.` };
     } catch (error: any) {
         console.error("Error updating balance with Admin SDK:", error);
-        return { success: false, message: "A server error occurred. Check admin credentials and server logs." };
+        return { success: false, message: error.message || "A server error occurred. Check admin credentials and server logs." };
     }
 }
 
@@ -191,15 +183,18 @@ export async function updateUserBalanceAction(adminId: string, userId: string, n
  * [ADMIN-ONLY] Approves a user's deposit request using the Admin SDK.
  */
 export async function approveDepositAction(adminId: string, userId: string, depositAmount: number): Promise<{ success: boolean; message: string; newBalance?: number }> {
-    if (!adminDb) {
-        return { success: false, message: ADMIN_DB_ERROR_MESSAGE };
-    }
-
     if (depositAmount <= 0) {
         return { success: false, message: "Deposit amount must be positive." };
     }
 
     try {
+        const adminDb = await getAdminDb();
+        const getAdminUserDoc = async (uid: string): Promise<User | null> => {
+            const userRef = adminDb.collection('users').doc(uid);
+            const userSnap = await userRef.get();
+            return userSnap.exists ? userSnap.data() as User : null;
+        }
+        
         const adminUser = await getAdminUserDoc(adminId);
         if (!adminUser || !adminUser.isAdmin) {
             return { success: false, message: "Authorization Failed. You do not have privileges." };
@@ -220,6 +215,6 @@ export async function approveDepositAction(adminId: string, userId: string, depo
         return { success: true, message: `${user.username}'s balance is now ₹${newBalance.toFixed(2)}.`, newBalance };
     } catch (error: any) {
         console.error("Error approving deposit with Admin SDK:", error);
-        return { success: false, message: "A server error occurred. Check admin credentials and server logs." };
+        return { success: false, message: error.message || "A server error occurred. Check admin credentials and server logs." };
     }
 }
