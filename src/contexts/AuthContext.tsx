@@ -48,6 +48,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     if (!auth || !db) {
+        toast({
+            title: "Firebase Initialization Failed",
+            description: "The Firebase configuration seems present but is invalid. Please check the values in your .env.local file and restart the server.",
+            variant: "destructive",
+            duration: 10000,
+        });
         setLoading(false);
         return;
     }
