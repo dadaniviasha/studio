@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
@@ -125,16 +126,33 @@ export function UserManagement() {
     }
 
     if (state.error) {
+       // Check for the specific admin SDK configuration error message.
+      const isConfigError = state.error.includes("Firebase Admin SDK is not configured");
+
       return (
         <TableBody>
           <TableRow>
             <TableCell colSpan={5}>
               <Alert variant="destructive" className="my-4">
                 <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>Permission Error: Could Not Load Users</AlertTitle>
+                <AlertTitle>
+                  {isConfigError ? "Action Required: Configure Admin Access" : "Error Loading Users"}
+                </AlertTitle>
                 <AlertDescription>
-                    {/* Use the specific error message from the state */}
+                  {isConfigError ? (
+                    <div className="space-y-2 mt-2">
+                        <p>The admin features of this app are disabled because the server cannot securely connect to Firebase.</p>
+                        <p className="font-semibold">To fix this, you must:</p>
+                        <ol className="list-decimal list-inside space-y-1 pl-2">
+                            <li>Create a Firebase "Service Account" in your Firebase Project settings.</li>
+                            <li>Add the credentials from the downloaded JSON file to your <code className="bg-muted px-1 py-0.5 rounded-sm">.env.local</code> file.</li>
+                            <li>Restart your development server.</li>
+                        </ol>
+                        <p className="pt-2">The error from the server was: <br/><span className="font-mono text-xs bg-muted p-1 rounded-sm">{state.error}</span></p>
+                    </div>
+                  ) : (
                     <p className="font-semibold mt-2">{state.error}</p>
+                  )}
                 </AlertDescription>
               </Alert>
             </TableCell>
